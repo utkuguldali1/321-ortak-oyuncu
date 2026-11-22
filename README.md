@@ -18,6 +18,7 @@
 - 🇹🇷 Türk ligleri için Türkçe Wikipedia verisi
 - 🎲 Rastgele eşleşme
 - 📟 Retro stadyum skorbordu teması
+- 🌍 Türkçe ve İngilizce (telefon diline göre otomatik, sağ üstteki TR/EN butonuyla değiştirilebilir)
 
 ## Nasıl çalışır?
 

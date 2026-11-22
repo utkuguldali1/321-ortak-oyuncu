@@ -41,6 +41,10 @@
   /* ---------- Ana ekran ---------- */
   .home{height:100%;display:flex;flex-direction:column;padding:calc(var(--pad-t) + 4px) 18px var(--pad-b)}
   .logo{font:clamp(40px, 6.5dvh, 56px)/1 var(--display);color:var(--amber);text-shadow:0 0 14px var(--glow);white-space:nowrap}
+  .top{display:flex;align-items:center;justify-content:space-between}
+  .lang{height:34px;min-width:46px;padding:0 10px;border:1px solid var(--line);border-radius:4px;background:var(--soft);
+    font:24px/1 var(--display);color:var(--amber);letter-spacing:.06em}
+  .lang:active{transform:scale(.95)}
   .match{flex:1;display:grid;grid-template-columns:1fr 56px 1fr;align-items:center;gap:6px;position:relative}
   .match::before{content:"";position:absolute;left:50%;top:50%;width:200px;height:200px;margin:-100px 0 0 -100px;
     border:2px solid rgba(255,178,26,.08);border-radius:50%;pointer-events:none}
@@ -189,7 +193,7 @@
 
   <!-- ANA EKRAN -->
   <section class="home">
-    <div class="logo">3-2-1!</div>
+    <div class="top"><div class="logo">3-2-1!</div><button class="lang" id="lang" aria-label="Language"></button></div>
     <div class="match">
       <button class="slot empty" id="slotA"></button>
       <div class="vs">VS</div>
@@ -262,6 +266,52 @@
 /* =========================================================
    AYARLAR VE VERİ
    ========================================================= */
+/* =========================================================
+   DİL (TR / EN) — telefon dili Türkçe değilse İngilizce açılır,
+   seçim hatırlanır. Sol üstteki butonla değiştirilir.
+   ========================================================= */
+const LANG = (() => {
+  try { const v = JSON.parse(localStorage.getItem('lang')); if (v === 'tr' || v === 'en') return v; } catch {}
+  return /^tr\b/i.test(navigator.language || '') ? 'tr' : 'en';
+})();
+const TEXT = {
+  tr: {
+    random:'🎲 Rastgele', career:'👤 Oyuncu kariyeri', current:'Güncel', filter:'Listede oyuncu ara…', again:'YENİ TUR',
+    careerTitle:'Kariyer', skip:'geçmek için dokun',
+    hintOk:"Hazır mısınız? <b>3·2·1</b>'e bas, ilk bulan kazansın.", hintSame:'Aynı takımı iki kez seçtin.',
+    hintStart:'İki takım seç, ortak oyuncuyu ilk söyleyen kazansın.',
+    team: n => `${n}. takım`, pickTeam: n => `${n}. takımı seç`, playerCareer:'Oyuncu kariyeri',
+    teamPh:'Takım ara… (ör. Ajax, Trabzonspor)', playerPh:'Oyuncu adı… (ör. Hagi, Quaresma)',
+    recentPlayers:'Son bakılanlar', playerHint:'Bir futbolcunun adını yaz,<br>oynadığı bütün takımları gör.',
+    recentTeams:'Son seçilenler', popular:'Popüler',
+    noTeam:'Futbol takımı bulunamadı.<br>Farklı yazmayı dene.', noPlayer:'Futbolcu bulunamadı.<br>Soyadıyla aramayı dene.',
+    netErr:'Bağlantı hatası, tekrar dene.', connProblem:'Bağlantı sorunu', retry:'Tekrar dene',
+    none:'Ortak oyuncu yok! 😬', noneSub:'Farklı takımlar seçip tekrar deneyin.',
+    count: (n, cur) => `<em>${n}</em> ${cur ? 'güncel ' : ''}ortak oyuncu`,
+    checking:'Güncel oyuncular kontrol ediliyor…', noName:'Bu isimde ortak oyuncu yok.', noNow:'Şu an bu takımlarda oynayan ortak oyuncu yok.',
+    nowAt: x => `şu an ${x}`, nowShort:'şu an', present:'şimdi', clubs: n => `${n} kulüp`, national:'Milli takım', youth:'Altyapı',
+    noRecords:'Bu oyuncunun takım kaydı yok.', slow:'Bağlantı çok yavaş', noResp:'Wikidata yanıt vermedi', other:'EN',
+  },
+  en: {
+    random:'🎲 Random', career:'👤 Player career', current:'Current', filter:'Search in list…', again:'NEW ROUND',
+    careerTitle:'Career', skip:'tap to skip',
+    hintOk:'Ready? Hit <b>3·2·1</b>. First to name one wins.', hintSame:'You picked the same team twice.',
+    hintStart:'Pick two teams. First to name a shared player wins.',
+    team: n => `Team ${n}`, pickTeam: n => `Pick team ${n}`, playerCareer:'Player career',
+    teamPh:'Search team… (e.g. Ajax, Celtic)', playerPh:'Player name… (e.g. Hagi, Drogba)',
+    recentPlayers:'Recently viewed', playerHint:"Type a footballer's name<br>to see every team they played for.",
+    recentTeams:'Recent', popular:'Popular',
+    noTeam:'No football team found.<br>Try another spelling.', noPlayer:'No footballer found.<br>Try the surname.',
+    netErr:'Connection error, try again.', connProblem:'Connection problem', retry:'Try again',
+    none:'No shared players! 😬', noneSub:'Pick different teams and try again.',
+    count: (n, cur) => `<em>${n}</em> ${cur ? 'current ' : ''}shared player${n === 1 ? '' : 's'}`,
+    checking:'Checking current players…', noName:'No shared player with that name.', noNow:'No shared player is at these teams right now.',
+    nowAt: x => `now at ${x}`, nowShort:'now', present:'now', clubs: n => `${n} club${n === 1 ? '' : 's'}`, national:'National team', youth:'Youth',
+    noRecords:'No team records for this player.', slow:'Connection too slow', noResp:'Wikidata did not respond', other:'TR',
+  },
+}[LANG];
+document.documentElement.lang = LANG;
+
 const API = 'https://www.wikidata.org/w/api.php';
 const SPARQL = 'https://query.wikidata.org/sparql';
 const WIKI = 'https://en.wikipedia.org/w/api.php';
@@ -295,7 +345,8 @@ const qid = uri => uri.split('/').pop();
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const pairKey = (a,b) => [a,b].sort().join('-');
 const yr = v => { const n = parseInt(v, 10); return isNaN(n) ? null : n; };
-const label = r => (r.tr || r.mul || r.en)?.value;
+const label = r => (LANG === 'en' ? (r.en || r.mul || r.tr) : (r.tr || r.mul || r.en))?.value;
+const descOf = r => (LANG === 'en' ? (r.den || r.dtr) : (r.dtr || r.den))?.value || '';
 // "Çağlar Söyüncü" ile "caglar soyuncu" eşleşsin
 const fold = s => String(s).toLocaleLowerCase('tr').replace(/ı/g,'i').normalize('NFD').replace(/[̀-ͯ]/g,'');
 const initials = n => (n || '?').split(/\s+/).map(w => w[0]).join('').slice(0, 3).toUpperCase();
@@ -313,7 +364,7 @@ function shortName(l){
    sayfasındaki "current club" bilgisine bakıyoruz. Emin değilsek
    (sayfa yok, bilgi yok, teknik direktör, emekli) "şu an" yazmıyoruz.
    ========================================================= */
-const years = (sp, cur) => !sp[0] ? '?' : sp[0] === sp[1] ? `${sp[0]}` : `${sp[0]}–${sp[1] || (cur ? 'şimdi' : '?')}`;
+const years = (sp, cur) => !sp[0] ? '?' : sp[0] === sp[1] ? `${sp[0]}` : `${sp[0]}–${sp[1] || (cur ? TEXT.present : '?')}`;
 /* ---------- Wikipedia bilgi kutuları (Türkçe + İngilizce) ---------- */
 async function wikiText(wiki, title){
   const d = await getJSON(`https://${wiki}.wikipedia.org/w/api.php?` + new URLSearchParams({ action:'parse', format:'json', origin:'*', prop:'wikitext', section:'0', redirects:'1', page:title }), null, 8000);
@@ -459,11 +510,11 @@ async function pool(items, n, fn){
    ========================================================= */
 async function getJSON(url, signal, ms = 9000){
   const c = new AbortController();
-  const t = setTimeout(() => c.abort(new Error('Bağlantı çok yavaş')), ms);
+  const t = setTimeout(() => c.abort(new Error(TEXT.slow)), ms);
   signal?.addEventListener('abort', () => c.abort(signal.reason), { once: true });
   try {
     const res = await fetch(url, { signal: c.signal });
-    if (!res.ok) throw new Error('Wikidata yanıt vermedi (' + res.status + ')');
+    if (!res.ok) throw new Error(TEXT.noResp + ' (' + res.status + ')');
     return await res.json();
   } finally { clearTimeout(t); }
 }
@@ -476,7 +527,7 @@ const LABELS = v => `OPTIONAL { ${v} rdfs:label ?tr FILTER(LANG(?tr) = "tr") } O
 // Arama: hem "baştan eşleşen" arama hem de tam metin araması. Böylece "osimhen" yazınca
 // "Victor Osimhen" da bulunur (eski arama sadece ismin başından eşleştiriyordu).
 async function findIds(text, filter, signal){
-  const prefix = getJSON(`${API}?action=wbsearchentities&format=json&origin=*&language=tr&uselang=tr&type=item&limit=12&search=${encodeURIComponent(text)}`, signal, 6000)
+  const prefix = getJSON(`${API}?action=wbsearchentities&format=json&origin=*&language=${LANG}&uselang=${LANG}&type=item&limit=12&search=${encodeURIComponent(text)}`, signal, 6000)
     .then(d => (d.search || []).map(i => i.id)).catch(() => []);
   const full = getJSON(`${API}?` + new URLSearchParams({ action:'query', list:'search', format:'json', origin:'*', srlimit:'12', srsearch:`${text} ${filter}` }), signal, 6000)
     .then(d => (d.query?.search || []).map(x => x.title)).catch(() => []);
@@ -493,7 +544,7 @@ async function searchTeams(text, signal){
       VALUES ?t { ${ids2values(ids)} } ?t wdt:P31 ?c . VALUES ?c { ${CLASSES} } ?t wikibase:sitelinks ?links .
       ${LABELS('?t')} }`, signal);
   const meta = {};
-  rows.forEach(r => { meta[qid(r.t.value)] ??= { name: label(r), desc: (r.dtr || r.den)?.value || '', links: +r.links.value }; });
+  rows.forEach(r => { meta[qid(r.t.value)] ??= { name: label(r), desc: descOf(r), links: +r.links.value }; });
   const teams = Object.entries(meta).filter(([, m]) => m.name)
     .map(([id, m]) => ({ id, name: shortName(m.name), desc: m.desc, links: m.links }))
     .sort((x, y) => y.links - x.links).slice(0, 8);
@@ -509,7 +560,7 @@ async function searchPlayers(text, signal){
       VALUES ?p { ${ids2values(ids)} } ?p wdt:P106 ${FOOTBALLER} ; wikibase:sitelinks ?links .
       OPTIONAL { ?p wdt:P18 ?img } ${LABELS('?p')} }`, signal);
   const out = {};
-  rows.forEach(r => { out[qid(r.p.value)] ??= { id: qid(r.p.value), name: label(r), desc: (r.dtr || r.den)?.value || '', img: r.img?.value || null, links: +r.links.value }; });
+  rows.forEach(r => { out[qid(r.p.value)] ??= { id: qid(r.p.value), name: label(r), desc: descOf(r), img: r.img?.value || null, links: +r.links.value }; });
   return Object.values(out).filter(p => p.name).sort((x, y) => y.links - x.links).slice(0, 10);
 }
 
@@ -576,7 +627,7 @@ const PLAYER_LABELS = `OPTIONAL { ?p rdfs:label ?tr  FILTER(LANG(?tr)  = "tr")  
       OPTIONAL { ?p rdfs:label ?mul FILTER(LANG(?mul) = "mul") }
       OPTIONAL { ?p rdfs:label ?en  FILTER(LANG(?en)  = "en")  }`;
 async function fetchPair(a, b){
-  const key = 'pair_v4:' + pairKey(a, b);
+  const key = `pair_v5:${LANG}:` + pairKey(a, b);
   const cached = LS.get(key);
   if (cached && Date.now() - cached.t < 6 * 3600e3) return cached.d;
 
@@ -620,7 +671,7 @@ async function fetchPair(a, b){
 // "Şu an" doğrulaması: oyuncunun Wikipedia sayfasındaki güncel kulübü (önce İngilizce, yoksa Türkçe).
 // Sonuçları bekletmez, arka planda çalışır.
 async function verifyPair(a, b, d){
-  const key = 'pair_v4:' + pairKey(a, b);
+  const key = `pair_v5:${LANG}:` + pairKey(a, b);
   if (LS.get(key)?.verified) return false;
   const cand = d.filter(p => Object.values(p.s).some(l => !l.length || l.some(sp => (sp[0] && !sp[1]) || (sp[1] && sp[1] >= NOW - 1))))
     .sort((x, y) => y.links - x.links).slice(0, 40);
@@ -645,7 +696,7 @@ async function verifyPair(a, b, d){
 
 // Bir oyuncunun kariyeri: Wikidata + Türkçe/İngilizce Wikipedia bilgi kutusu
 async function fetchCareer(id){
-  const key = 'career_v3:' + id;
+  const key = `career_v4:${LANG}:` + id;
   const cached = LS.get(key);
   if (cached && Date.now() - cached.t < 6 * 3600e3) return cached.d;
 
@@ -667,7 +718,8 @@ async function fetchCareer(id){
     const nat = r.nat?.value === 'true' || /\bnational\b/i.test(r.en?.value || '') || /mill[iî]/i.test(r.tr?.value || '');
     const youth = isYouthName(r.en?.value) || isYouthName(r.tr?.value) || isYouthName(label(r));
     let name = shortName(label(r) || tid);
-    if (nat) name = name.replace(/\s*mill[iî]\s+futbol\s+takımı/i, '').replace(/\s+national\s+(association\s+)?football\s+team/i, '');
+    if (nat) name = name.replace(/\s*mill[iî]\s+futbol\s+takımı/i, '').replace(/\s+national\s+under-(\d+)\s+(association\s+)?football\s+team/i, ' U-$1')
+      .replace(/\s+national\s+(association\s+)?football\s+team/i, '').replace(/\s+men['’]s(?=\s|$)/i, '');
     if (!wd.has(tid)) wd.set(tid, { id: tid, logo: tid, name, kind: youth ? 'youth' : nat ? 'nat' : 'club', s: [] });
     const sp = [yr(r.start?.value), yr(r.end?.value)], t = wd.get(tid);
     if (!t.s.some(x => x[0] === sp[0] && x[1] === sp[1])) t.s.push(sp);
@@ -679,8 +731,10 @@ async function fetchCareer(id){
     sl.enwiki ? wikiText('en', sl.enwiki.title).catch(() => '') : '',
   ]);
   const trP = infoboxParams(trW), enP = infoboxParams(enW);
-  let ib = infoboxCareer(trP, 'tr');
-  if (!ib.some(e => e.kind === 'club')) ib = infoboxCareer(enP, 'en');
+  // Önce seçilen dildeki Wikipedia, kulüp bilgisi yoksa diğeri
+  const order = LANG === 'en' ? [[enP, 'en'], [trP, 'tr']] : [[trP, 'tr'], [enP, 'en']];
+  let ib = infoboxCareer(...order[0]);
+  if (!ib.some(e => e.kind === 'club')) ib = infoboxCareer(...order[1]);
   const enCur = currentClubOf(enP), trCur = currentClubOf(trP);
   const curL = sl.enwiki ? (enCur && { ...enCur, wiki: 'en' }) : (trCur && { ...trCur, wiki: 'tr' });
 
@@ -782,13 +836,12 @@ function renderSlots(){
     const el = $(k === 'a' ? 'slotA' : 'slotB'), t = state[k];
     el.classList.toggle('empty', !t);
     el.innerHTML = t ? `${crest(t.id)}<span class="nm">${esc(t.name)}</span>`
-                     : `<span class="crest">+</span><span class="nm">${k === 'a' ? '1.' : '2.'} takım</span>`;
+                     : `<span class="crest">+</span><span class="nm">${TEXT.team(k === 'a' ? 1 : 2)}</span>`;
   }
   paintLogos($('slotA').parentNode);
   const ok = state.a && state.b && state.a.id !== state.b.id;
   $('go').disabled = !ok;
-  $('hint').innerHTML = ok ? `Hazır mısınız? <b>3·2·1</b>'e bas, ilk bulan kazansın.`
-    : (state.a && state.b) ? 'Aynı takımı iki kez seçtin.' : 'İki takım seç, ortak oyuncuyu ilk söyleyen kazansın.';
+  $('hint').innerHTML = ok ? TEXT.hintOk : (state.a && state.b) ? TEXT.hintSame : TEXT.hintStart;
 }
 
 function setTeam(k, t){
@@ -826,8 +879,8 @@ function openSheet(mode, slot){
 }
 function setSheetHeader(){
   const team = state.mode === 'team';
-  $('sheetTitle').textContent = team ? (state.slot === 'a' ? '1.' : '2.') + ' takımı seç' : 'Oyuncu kariyeri';
-  $('q').placeholder = team ? 'Takım ara… (ör. Ajax, Trabzonspor)' : 'Oyuncu adı… (ör. Hagi, Quaresma)';
+  $('sheetTitle').textContent = team ? TEXT.pickTeam(state.slot === 'a' ? 1 : 2) : TEXT.playerCareer;
+  $('q').placeholder = team ? TEXT.teamPh : TEXT.playerPh;
 }
 const playerRow = p => `<button class="row" data-pid="${p.id}">${face(p, 'sm')}<div><b>${esc(p.name)}</b><small>${esc(p.desc)}</small></div></button>`;
 function renderSheetHome(){
@@ -835,16 +888,16 @@ function renderSheetHome(){
     const rec = LS.get('recentp_v1') || [];
     rec.forEach(p => lastPlayers[p.id] = p);
     $('sheetBody').innerHTML = rec.length
-      ? `<div class="label">Son bakılanlar</div><div class="rows">${rec.map(playerRow).join('')}</div>`
-      : `<div class="empty-msg">Bir futbolcunun adını yaz,<br>oynadığı bütün takımları gör.</div>`;
+      ? `<div class="label">${TEXT.recentPlayers}</div><div class="rows">${rec.map(playerRow).join('')}</div>`
+      : `<div class="empty-msg">${TEXT.playerHint}</div>`;
     return;
   }
   const rec = LS.get('recent_v1') || [];
   rec.forEach(t => names[t.id] ??= t.name);
   $('sheetBody').innerHTML =
-    (rec.length ? `<div class="label">Son seçilenler</div><div class="recent">${
+    (rec.length ? `<div class="label">${TEXT.recentTeams}</div><div class="recent">${
       rec.map(t => `<button class="chip" data-id="${t.id}" data-name="${esc(t.name)}">${crest(t.id)}${esc(t.name)}</button>`).join('')}</div>` : '') +
-    `<div class="label">Popüler</div><div class="grid">${
+    `<div class="label">${TEXT.popular}</div><div class="grid">${
       POPULAR.map(t => `<button class="tile" data-id="${t.id}" data-name="${esc(t.name)}">${crest(t.id)}${esc(t.name)}</button>`).join('')}</div>`;
   paintLogos($('sheetBody'));
   ensureLogos([...POPULAR.map(t => t.id), ...rec.map(t => t.id)]);
@@ -864,20 +917,20 @@ $('q').addEventListener('input', () => {
         $('sheetBody').innerHTML = list.length
           ? `<div class="rows">${list.map(t => `<button class="row" data-id="${t.id}" data-name="${esc(t.name)}">
               ${crest(t.id, 'sm')}<div><b>${esc(t.name)}</b><small>${esc(t.desc)}</small></div></button>`).join('')}</div>`
-          : `<div class="empty-msg">Futbol takımı bulunamadı.<br>Farklı yazmayı dene.</div>`;
+          : `<div class="empty-msg">${TEXT.noTeam}</div>`;
         paintLogos($('sheetBody'));
       } else {
         const list = await searchPlayers(q, ctrl.signal);
         if (ctrl.signal.aborted) return;
         list.forEach(p => lastPlayers[p.id] = p);
         $('sheetBody').innerHTML = list.length ? `<div class="rows">${list.map(playerRow).join('')}</div>`
-          : `<div class="empty-msg">Futbolcu bulunamadı.<br>Soyadıyla aramayı dene.</div>`;
+          : `<div class="empty-msg">${TEXT.noPlayer}</div>`;
       }
       $('searchBox').classList.remove('searching');
     } catch (e) {
       if (e.name === 'AbortError') return;
       $('searchBox').classList.remove('searching');
-      $('sheetBody').innerHTML = '<div class="empty-msg">Bağlantı hatası, tekrar dene.</div>';
+      $('sheetBody').innerHTML = `<div class="empty-msg">${TEXT.netErr}</div>`;
     }
   }, 220);
 });
@@ -953,8 +1006,8 @@ async function showResults(a, b, req){
     });
   } catch (e) {
     if (state.key !== pairKey(a.id, b.id)) return;
-    $('resList').innerHTML = `<div class="none"><b>Bağlantı sorunu</b><span>${esc(e.message)}</span><br>
-      <button class="ghost" id="retry">Tekrar dene</button></div>`;
+    $('resList').innerHTML = `<div class="none"><b>${TEXT.connProblem}</b><span>${esc(e.message)}</span><br>
+      <button class="ghost" id="retry">${TEXT.retry}</button></div>`;
     $('retry').onclick = () => showResults(a, b, prefetch());
   }
 }
@@ -964,21 +1017,21 @@ function renderList(animate){
   const { a, b } = state, P = state.players;
   if (!P.length) {
     $('tools').style.display = 'none';
-    $('resList').innerHTML = `<div class="none"><b>Ortak oyuncu yok! 😬</b><span>Farklı takımlar seçip tekrar deneyin.</span></div>`;
+    $('resList').innerHTML = `<div class="none"><b>${TEXT.none}</b><span>${TEXT.noneSub}</span></div>`;
     return;
   }
   $('tools').style.display = '';
   const q = fold(state.filter.trim());
   const shown = P.filter(p => (!state.onlyNow || p.cur) && (!q || fold(p.name).includes(q)));
-  $('resCount').innerHTML = `<em>${shown.length}</em> ${state.onlyNow ? 'güncel ' : ''}ortak oyuncu`;
+  $('resCount').innerHTML = TEXT.count(shown.length, state.onlyNow);
   if (state.onlyNow && state.verifying) {
-    $('resCount').innerHTML = `<em>…</em> güncel ortak oyuncu`;
-    $('resList').innerHTML = '<div class="empty-msg">Güncel oyuncular kontrol ediliyor…</div>';
+    $('resCount').innerHTML = TEXT.count('…', true);
+    $('resList').innerHTML = `<div class="empty-msg">${TEXT.checking}</div>`;
     return;
   }
   $('resList').classList.toggle('calm', !animate);
   if (!shown.length) {
-    $('resList').innerHTML = `<div class="empty-msg">${q ? 'Bu isimde ortak oyuncu yok.' : 'Şu an bu takımlarda oynayan ortak oyuncu yok.'}</div>`;
+    $('resList').innerHTML = `<div class="empty-msg">${q ? TEXT.noName : TEXT.noNow}</div>`;
     return;
   }
   const max = Math.max(...P.map(p => p.links));
@@ -987,7 +1040,7 @@ function renderList(animate){
     return `<button class="pl ${p.rank <= 3 ? 'r' + p.rank : ''}" data-pid="${p.id}" style="animation-delay:${Math.min(i, 12) * 30}ms">
       <div class="rk">${p.rank}</div>${face(p)}
       <div>
-        <span class="pn">${esc(p.name)}</span>${p.cur ? `<span class="now">şu an ${esc(p.cur === a.id ? a.name : b.name)}</span>` : ''}
+        <span class="pn">${esc(p.name)}</span>${p.cur ? `<span class="now">${esc(TEXT.nowAt(p.cur === a.id ? a.name : b.name))}</span>` : ''}
         <div class="sps">${sp(a)}${sp(b)}</div>
         <div class="fame"><i style="width:${Math.max(4, p.links / max * 100).toFixed(0)}%"></i></div>
       </div></button>`;
@@ -1026,22 +1079,31 @@ async function showCareer(p, remember){
     const row = (t, i) => {
       const cur = t.kind === 'club' && t.id === curTeam;
       return `<div class="club ${cur ? 'cur' : ''}" style="animation-delay:${Math.min(i, 15) * 25}ms">${crest(t.logo || t.id, 'md')}
-        <div><b>${esc(t.name)}${cur ? '<span class="now">şu an</span>' : ''}</b><small>${t.s.map(sp => years(sp, cur)).join(' · ')}</small></div></div>`;
+        <div><b>${esc(t.name)}${cur ? `<span class="now">${TEXT.nowShort}</span>` : ''}</b><small>${t.s.map(sp => years(sp, cur)).join(' · ')}</small></div></div>`;
     };
     const mini = t => `<div class="mini">${crest(t.logo || t.id, 'xs')}<span>${esc(t.name)}</span><small>${t.s.map(sp => years(sp, false)).join(' · ')}</small></div>`;
     const clubs = teams.filter(t => t.kind === 'club'), nat = teams.filter(t => t.kind === 'nat'), youth = teams.filter(t => t.kind === 'youth');
-    body.querySelector('.clubs').innerHTML = !teams.length ? '<div class="empty-msg">Bu oyuncunun takım kaydı yok.</div>'
-      : (clubs.length ? `<div class="label">${clubs.length} kulüp</div>${clubs.map(row).join('')}` : '') +
-        (nat.length ? `<div class="label sec">Milli takım</div>${nat.map((t, i) => row(t, clubs.length + i)).join('')}` : '') +
-        (youth.length ? `<div class="label sec">Altyapı</div><div class="minis">${youth.map(mini).join('')}</div>` : '');
+    body.querySelector('.clubs').innerHTML = !teams.length ? `<div class="empty-msg">${TEXT.noRecords}</div>`
+      : (clubs.length ? `<div class="label">${TEXT.clubs(clubs.length)}</div>${clubs.map(row).join('')}` : '') +
+        (nat.length ? `<div class="label sec">${TEXT.national}</div>${nat.map((t, i) => row(t, clubs.length + i)).join('')}` : '') +
+        (youth.length ? `<div class="label sec">${TEXT.youth}</div><div class="minis">${youth.map(mini).join('')}</div>` : '');
     paintLogos(body);
     ensureLogos(teams.map(t => t.logo).filter(Boolean));
   } catch (e) {
-    body.querySelector('.clubs').innerHTML = `<div class="empty-msg">Bağlantı sorunu: ${esc(e.message)}</div>`;
+    body.querySelector('.clubs').innerHTML = `<div class="empty-msg">${TEXT.connProblem}: ${esc(e.message)}</div>`;
   }
 }
 
 /* ---------- Başlangıç ---------- */
+$('random').textContent = TEXT.random;
+$('careerBtn').textContent = TEXT.career;
+$('onlyNow').innerHTML = `<i></i>${TEXT.current}`;
+$('filter').placeholder = TEXT.filter;
+$('again').textContent = TEXT.again;
+$('career').querySelector('.title').textContent = TEXT.careerTitle;
+$('count').querySelector('small').textContent = TEXT.skip;
+$('lang').textContent = TEXT.other;
+$('lang').addEventListener('click', () => { LS.set('lang', LANG === 'tr' ? 'en' : 'tr'); location.reload(); });
 renderSlots();
 ensureLogos(POPULAR.map(t => t.id));
 </script>
