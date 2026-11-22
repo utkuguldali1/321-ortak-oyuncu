@@ -3,163 +3,173 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#07110c">
+<meta name="theme-color" content="#0b0b0a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="3·2·1">
+<meta name="apple-mobile-web-app-title" content="3-2-1!">
 <meta name="description" content="İki futbol takımı seç, iki takımda da oynamış oyuncuları anında gör. Kafede oynanan 3-2-1 oyunu için.">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>3·2·1 Ortak Oyuncu</title>
+<title>3-2-1! Ortak Oyuncu</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://query.wikidata.org">
 <link rel="preconnect" href="https://en.wikipedia.org">
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,800;1,800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#07110c; --bg2:#0c1a12; --card:#10211869; --card-solid:#112219; --line:rgba(255,255,255,.08);
-    --text:#f1f6f2; --muted:#8ea596; --lime:#d4ff3a; --lime-ink:#0b1606; --gold:#ffcf4a;
-    --silver:#cfd8d3; --bronze:#e0995b; --red:#ff6b5b; --crest-bg:#f3f6f1;
-    --display:"Barlow Condensed",system-ui,sans-serif;
+    --bg:#0b0b0a; --card:#151513; --line:#2d2b25; --text:#f6e7c8; --muted:#8c8268; --faint:#5f584a;
+    --amber:#ffb21a; --ink:#1a1100; --gold:#ffd25a; --silver:#d9d2bf; --bronze:#d8894a;
+    --crest-bg:#e9e3d2; --glow:rgba(255,178,26,.65); --soft:rgba(255,178,26,.08);
+    --display:"VT323",ui-monospace,monospace; --body:"IBM Plex Mono",ui-monospace,monospace;
     --safe-b:env(safe-area-inset-bottom,0px); --safe-t:env(safe-area-inset-top,0px);
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{height:100%}
-  body{margin:0;background:var(--bg);color:var(--text);overflow:hidden;
-    font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  body{margin:0;background:var(--bg);color:var(--text);overflow:hidden;font:15px/1.4 var(--body)}
   button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0}
+  input{font:inherit}
   .app{position:relative;max-width:480px;height:100dvh;margin:0 auto;overflow:hidden;
-    background:
-      repeating-linear-gradient(to bottom, rgba(255,255,255,.018) 0 64px, transparent 64px 128px),
-      radial-gradient(120% 70% at 50% 0%, #133222 0%, var(--bg) 60%);}
+    background:repeating-linear-gradient(0deg,rgba(255,255,255,.025) 0 1px,transparent 1px 3px),
+               radial-gradient(100% 60% at 50% 40%,#1d1a12,var(--bg) 70%)}
 
   /* ---------- Ana ekran ---------- */
-  .home{height:100%;display:flex;flex-direction:column;padding:calc(18px + var(--safe-t)) 18px calc(18px + var(--safe-b))}
-  .brand{display:flex;align-items:baseline;justify-content:space-between}
-  .logo{font:italic 800 34px/1 var(--display);letter-spacing:.02em;color:var(--lime)}
-  .logo span{color:var(--text)}
-  .tag{font-size:13px;color:var(--muted)}
-  .match{flex:1;display:grid;grid-template-columns:1fr 64px 1fr;align-items:center;gap:4px;position:relative}
-  /* saha orta çizgisi ve orta yuvarlak */
+  .home{height:100%;display:flex;flex-direction:column;padding:calc(16px + var(--safe-t)) 18px calc(18px + var(--safe-b))}
+  .logo{font:48px/1 var(--display);color:var(--amber);text-shadow:0 0 14px var(--glow);white-space:nowrap}
+  .match{flex:1;display:grid;grid-template-columns:1fr 56px 1fr;align-items:center;gap:6px;position:relative}
   .match::before{content:"";position:absolute;left:50%;top:50%;width:200px;height:200px;margin:-100px 0 0 -100px;
-    border:2px solid rgba(255,255,255,.05);border-radius:50%;pointer-events:none}
-  .match::after{content:"";position:absolute;left:-18px;right:-18px;top:50%;height:2px;margin-top:-1px;
-    background:rgba(255,255,255,.05);pointer-events:none}
-  .slot,.mid{position:relative;z-index:1}
+    border:2px solid rgba(255,178,26,.08);border-radius:50%;pointer-events:none}
+  .match::after{content:"";position:absolute;left:-18px;right:-18px;top:50%;height:2px;margin-top:-1px;background:rgba(255,178,26,.08);pointer-events:none}
+  .slot,.vs{position:relative;z-index:1}
   .slot{display:flex;flex-direction:column;align-items:center;gap:12px;min-width:0}
-  .slot .crest{width:min(30vw,120px);height:min(30vw,120px);box-shadow:0 10px 30px rgba(0,0,0,.45),0 0 0 4px rgba(255,255,255,.06)}
-  .slot.empty .crest{background:transparent;border:2px dashed rgba(212,255,58,.55);box-shadow:none;color:var(--lime);font-size:40px;font-weight:300}
-  .slot .nm{font:800 24px/1.05 var(--display);letter-spacing:.01em;text-align:center;
-    max-width:100%;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-  .slot.empty .nm{color:var(--muted);font-weight:600;font-size:18px}
+  .slot .crest{width:min(30vw,120px);height:min(30vw,120px);box-shadow:0 0 0 3px var(--line)}
+  .slot.empty .crest{background:transparent;border:2px dashed var(--amber);box-shadow:none;color:var(--amber);font-size:48px}
+  .slot .nm{font:27px/1 var(--display);text-align:center;max-width:100%;
+    overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .slot.empty .nm{color:var(--muted)}
   .slot:active .crest{transform:scale(.96)}
-  .mid{display:flex;flex-direction:column;align-items:center;gap:14px}
-  .vs{font:italic 800 30px/1 var(--display);color:var(--lime);text-shadow:0 0 24px rgba(212,255,58,.35)}
-  .swap{width:40px;height:40px;border-radius:50%;background:var(--card-solid);border:1px solid var(--line);font-size:16px;color:var(--muted)}
-  .hint{text-align:center;color:var(--muted);font-size:14px;margin:0 12px 18px;min-height:20px}
+  .vs{font:44px/1 var(--display);color:var(--amber);text-shadow:0 0 14px var(--glow);text-align:center}
+  .hint{text-align:center;color:var(--muted);font-size:13px;margin:0 8px 16px;min-height:20px}
   .hint b{color:var(--text)}
   .cta{display:flex;flex-direction:column;gap:10px}
-  .go{height:66px;border-radius:20px;background:var(--lime);color:var(--lime-ink);
-    font:italic 800 30px/1 var(--display);letter-spacing:.06em;box-shadow:0 10px 30px rgba(212,255,58,.25);transition:transform .12s, opacity .2s}
+  .cta .duo{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .go{height:66px;border-radius:4px;background:var(--amber);color:var(--ink);font:42px/1 var(--display);letter-spacing:.06em;
+    box-shadow:0 0 0 3px var(--bg),0 0 0 5px rgba(255,178,26,.5),0 0 30px rgba(255,178,26,.35);transition:transform .12s,opacity .2s}
   .go:active{transform:scale(.98)}
   .go:disabled{opacity:.25;box-shadow:none}
-  .ghost{height:50px;border-radius:16px;border:1px solid var(--line);background:rgba(255,255,255,.03);font-weight:600;color:var(--text)}
-  .ghost:active{background:rgba(255,255,255,.08)}
+  .ghost{height:50px;border-radius:4px;border:1px solid var(--line);background:rgba(255,178,26,.04);font-weight:600;font-size:14px}
+  .ghost:active{background:var(--soft)}
 
-  /* ---------- Arma ---------- */
-  .crest{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:var(--crest-bg);
-    color:#163021;font:800 18px/1 var(--display);overflow:hidden;flex:none;transition:transform .15s;position:relative}
-  .crest img{width:76%;height:76%;object-fit:contain}
-  .crest.sm{width:44px;height:44px;font-size:15px}
-  .crest.md{width:56px;height:56px}
-  .crest.xs{width:20px;height:20px;font-size:9px}
-  .crest.hd{width:40px;height:40px;font-size:14px}
+  /* ---------- Arma ve yüz ---------- */
+  .crest{display:inline-flex;align-items:center;justify-content:center;border-radius:6px;background:var(--crest-bg);
+    color:#2b2416;font:18px/1 var(--display);overflow:hidden;flex:none;transition:transform .15s}
+  .crest img{width:78%;height:78%;object-fit:contain}
+  .crest.sm{width:44px;height:44px} .crest.md{width:48px;height:48px} .crest.hd{width:34px;height:34px;font-size:14px}
+  .crest.xs{width:20px;height:20px;font-size:10px;border-radius:3px}
+  .face{width:54px;height:54px;border-radius:4px;object-fit:cover;object-position:50% 20%;background:#24211a;flex:none;
+    display:flex;align-items:center;justify-content:center;font:24px/1 var(--display);color:var(--amber);filter:sepia(.3) contrast(1.05)}
+  .face.sm{width:44px;height:44px;font-size:20px}
 
-  /* ---------- Takım seçme paneli ---------- */
-  .sheet,.results{position:absolute;inset:0;background:var(--bg);display:flex;flex-direction:column;z-index:10;
+  /* ---------- Katmanlar ---------- */
+  .layer{position:absolute;inset:0;background:var(--bg);display:flex;flex-direction:column;z-index:10;
     transition:transform .32s cubic-bezier(.2,.8,.2,1);will-change:transform}
-  .sheet{transform:translateY(102%)}
-  .sheet.open{transform:none}
-  .sheet-top{padding:calc(14px + var(--safe-t)) 14px 10px;display:flex;flex-direction:column;gap:12px;border-bottom:1px solid var(--line)}
-  .sheet-title{display:flex;align-items:center;gap:10px;font:800 22px/1 var(--display);text-transform:uppercase;letter-spacing:.03em}
-  .iconbtn{width:40px;height:40px;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;
-    background:rgba(255,255,255,.05);font-size:20px;flex:none}
-  .search{display:flex;align-items:center;gap:10px;background:var(--card-solid);border:1.5px solid var(--line);border-radius:16px;padding:0 14px;height:52px}
-  .search:focus-within{border-color:var(--lime)}
-  .search input{flex:1;min-width:0;border:0;background:none;color:var(--text);font-size:17px;outline:none;height:100%}
+  .sheet{transform:translateY(102%)} .results,.career{transform:translateX(102%)}
+  .layer.open{transform:none}
+  .career{z-index:12}
+  .bar{padding:calc(12px + var(--safe-t)) 14px 12px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line);background:#121210}
+  .title{font:28px/1 var(--display);text-transform:uppercase}
+  .iconbtn{width:40px;height:40px;border-radius:4px;display:inline-flex;align-items:center;justify-content:center;background:var(--soft);font-size:20px;flex:none}
+  .search{display:flex;align-items:center;gap:10px;background:var(--card);border:1.5px solid var(--line);border-radius:4px;padding:0 12px;height:48px}
+  .search:focus-within{border-color:var(--amber)}
+  .search input{flex:1;min-width:0;border:0;background:none;color:var(--text);font-size:16px;outline:none;height:100%}
   .search input::placeholder{color:var(--muted)}
-  .spin{width:18px;height:18px;border-radius:50%;border:2px solid rgba(255,255,255,.15);border-top-color:var(--lime);animation:spin .7s linear infinite;display:none}
+  .search .ic{color:var(--muted)}
+  .spin{width:16px;height:16px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--amber);animation:spin .7s linear infinite;display:none}
   .searching .spin{display:block}
   @keyframes spin{to{transform:rotate(360deg)}}
-  .sheet-body{flex:1;overflow-y:auto;padding:14px 14px calc(24px + var(--safe-b));-webkit-overflow-scrolling:touch}
-  .label{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:6px 2px 12px}
+  .scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+
+  /* ---------- Takım / oyuncu seçme ---------- */
+  .sheet-top{padding:calc(14px + var(--safe-t)) 14px 12px;display:flex;flex-direction:column;gap:12px;border-bottom:1px solid var(--line)}
+  .sheet-title{display:flex;align-items:center;gap:10px}
+  .sheet-body{padding:14px 14px calc(24px + var(--safe-b))}
+  .label{font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:4px 2px 12px}
   .recent{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:18px;scrollbar-width:none}
   .recent::-webkit-scrollbar{display:none}
-  .chip{display:flex;align-items:center;gap:8px;padding:6px 14px 6px 6px;border-radius:99px;background:var(--card-solid);border:1px solid var(--line);white-space:nowrap;font-weight:600;font-size:14px}
-  .chip .crest{width:30px;height:30px;font-size:11px}
+  .chip{display:flex;align-items:center;gap:8px;padding:5px 12px 5px 5px;border-radius:4px;background:var(--card);border:1px solid var(--line);white-space:nowrap;font-weight:600;font-size:13px}
+  .chip .crest{width:28px;height:28px;font-size:11px}
   .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px 8px}
-  .tile{display:flex;flex-direction:column;align-items:center;gap:7px;font-size:12px;font-weight:600;text-align:center;line-height:1.15}
+  .tile{display:flex;flex-direction:column;align-items:center;gap:7px;font-size:11.5px;font-weight:600;text-align:center;line-height:1.15}
   .tile .crest{width:58px;height:58px}
   .tile:active .crest,.chip:active,.row:active{transform:scale(.95)}
   .rows{display:flex;flex-direction:column;gap:6px}
-  .row{display:flex;align-items:center;gap:12px;padding:10px;border-radius:14px;background:var(--card-solid);border:1px solid var(--line);text-align:left;transition:transform .12s}
-  .row b{display:block;font-weight:650}
-  .row small{display:block;color:var(--muted);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .row{display:flex;align-items:center;gap:12px;padding:9px;border-radius:4px;background:var(--card);border:1px solid var(--line);text-align:left;transition:transform .12s;width:100%}
+  .row b{display:block;font-weight:600}
+  .row small{display:block;color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .row>div{min-width:0}
-  .empty-msg{color:var(--muted);text-align:center;padding:30px 10px}
+  .empty-msg{color:var(--muted);text-align:center;padding:34px 14px;font-size:14px}
 
   /* ---------- Geri sayım ---------- */
-  .count{position:absolute;inset:0;z-index:20;display:none;align-items:center;justify-content:center;flex-direction:column;gap:8px;
-    background:rgba(7,17,12,.94);backdrop-filter:blur(6px)}
+  .count{position:absolute;inset:0;z-index:20;display:none;align-items:center;justify-content:center;flex-direction:column;gap:8px;background:rgba(8,8,6,.96)}
   .count.on{display:flex}
-  .num{font:italic 800 min(60vw,280px)/1 var(--display);color:var(--lime);text-shadow:0 0 60px rgba(212,255,58,.35)}
+  .num{font:min(64vw,300px)/1 var(--display);color:var(--amber);text-shadow:0 0 40px var(--glow),0 0 4px var(--amber)}
   .num.pop{animation:pop .75s cubic-bezier(.2,.9,.3,1.3)}
-  .num.word{font-size:min(22vw,110px)}
   @keyframes pop{0%{transform:scale(.3);opacity:0}35%{transform:scale(1.08);opacity:1}100%{transform:scale(1);opacity:1}}
   .count small{color:var(--muted)}
 
   /* ---------- Sonuçlar ---------- */
-  .results{transform:translateX(102%)}
-  .results.open{transform:none}
-  .res-top{padding:calc(12px + var(--safe-t)) 14px 12px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line);
-    background:linear-gradient(to bottom,#11261a,var(--bg))}
-  .res-match{flex:1;display:flex;align-items:center;justify-content:center;gap:10px;min-width:0}
-  .res-match .t{display:flex;align-items:center;gap:8px;min-width:0;font:800 19px/1 var(--display)}
+  .res-match{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;min-width:0}
+  .res-match .t{display:flex;align-items:center;gap:6px;min-width:0;font:24px/1 var(--display)}
   .res-match .t span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .res-match .v{font:italic 800 16px/1 var(--display);color:var(--lime)}
-  .res-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px 4px}
-  .res-count{font:800 20px/1 var(--display);text-transform:uppercase}
-  .res-count em{color:var(--lime);font-style:normal}
-  .seg{display:flex;background:var(--card-solid);border:1px solid var(--line);border-radius:12px;padding:3px}
-  .seg button{padding:7px 10px;border-radius:9px;font-size:13px;font-weight:600;color:var(--muted)}
-  .seg button.on{background:var(--lime);color:var(--lime-ink)}
-  .res-list{flex:1;overflow-y:auto;padding:10px 14px calc(100px + var(--safe-b));display:flex;flex-direction:column;gap:8px}
-  .pl{display:grid;grid-template-columns:26px 54px 1fr;gap:12px;align-items:center;padding:10px 12px;border-radius:18px;
-    background:var(--card-solid);border:1px solid var(--line);animation:rise .35s both}
+  .res-match .v{font:20px/1 var(--display);color:var(--amber)}
+  .tools{padding:12px 14px 6px;display:flex;flex-direction:column;gap:10px}
+  .tools-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .res-count{font:28px/1 var(--display);text-transform:uppercase}
+  .res-count em{color:var(--amber);font-style:normal}
+  .toggle{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 12px;border-radius:4px;border:1px solid var(--line);
+    background:var(--card);font-size:13px;font-weight:600;color:var(--muted)}
+  .toggle i{width:12px;height:12px;border-radius:2px;border:1.5px solid var(--muted)}
+  .toggle.on{color:var(--ink);background:var(--amber);border-color:var(--amber)}
+  .toggle.on i{background:var(--ink);border-color:var(--ink)}
+  .res-list{padding:6px 14px calc(100px + var(--safe-b));display:flex;flex-direction:column;gap:8px}
+  .pl{display:grid;grid-template-columns:26px 54px 1fr;gap:12px;align-items:center;padding:10px 12px;border-radius:4px;
+    background:var(--card);border:1px solid var(--line);text-align:left;width:100%;animation:rise .35s both}
+  .calm .pl{animation:none}
+  .pl:active{transform:scale(.98)}
   @keyframes rise{from{opacity:0;transform:translateY(10px)}}
-  .rk{font:800 22px/1 var(--display);color:var(--muted);text-align:center}
-  .pl.r1{border-color:rgba(255,207,74,.45);background:linear-gradient(100deg,rgba(255,207,74,.12),var(--card-solid) 60%)}
+  .rk{font:26px/1 var(--display);color:var(--muted);text-align:center}
+  .pl.r1{border-color:rgba(255,178,26,.6);background:linear-gradient(100deg,rgba(255,178,26,.14),var(--card) 60%)}
   .pl.r1 .rk{color:var(--gold)} .pl.r2 .rk{color:var(--silver)} .pl.r3 .rk{color:var(--bronze)}
-  .face{width:54px;height:54px;border-radius:50%;object-fit:cover;object-position:50% 20%;background:#1c3426;display:flex;align-items:center;
-    justify-content:center;font:800 22px/1 var(--display);color:var(--lime)}
-  .pn{font-weight:700;font-size:16px;line-height:1.2;color:var(--text);text-decoration:none}
-  .now{display:inline-block;margin-left:4px;font-size:11px;font-weight:800;
-    padding:3px 7px;border-radius:99px;background:var(--lime);color:var(--lime-ink);vertical-align:2px}
+  .pn{font-weight:600;font-size:14px;line-height:1.25}
+  .now{display:inline-block;margin-left:4px;font:600 10.5px/1.4 var(--body);padding:2px 6px;border-radius:2px;background:var(--amber);color:var(--ink);vertical-align:2px;white-space:nowrap;text-transform:none}
   .sps{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:5px}
-  .sp{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
-  .fame{height:3px;border-radius:2px;background:rgba(255,255,255,.08);margin-top:7px;overflow:hidden}
-  .fame i{display:block;height:100%;background:linear-gradient(90deg,#7fae22,var(--lime));border-radius:2px}
-  .state{padding:50px 20px;text-align:center;color:var(--muted)}
-  .state b{display:block;font:800 26px/1.1 var(--display);color:var(--text);text-transform:uppercase;margin-bottom:6px}
-  .state .ghost{margin-top:16px;padding:0 22px}
+  .sp{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .fame{height:3px;background:#25231d;margin-top:7px;overflow:hidden}
+  .fame i{display:block;height:100%;background:repeating-linear-gradient(90deg,var(--amber) 0 6px,transparent 6px 8px)}
+  .none{padding:60px 22px;text-align:center}
+  .none b{display:block;font:44px/1.05 var(--display);color:var(--amber);text-shadow:0 0 14px var(--glow);margin-bottom:12px}
+  .none span{color:var(--muted);font-size:14px}
+  .none .ghost{margin-top:18px;padding:0 22px}
   .res-cta{position:absolute;left:0;right:0;bottom:0;padding:14px 14px calc(14px + var(--safe-b));display:flex;gap:10px;
     background:linear-gradient(to top,var(--bg) 60%,transparent)}
-  .res-cta .go{flex:1;height:56px;font-size:24px}
+  .res-cta .go{flex:1;height:56px;font-size:34px}
   .res-cta .ghost{width:56px;height:56px;font-size:22px}
-  .skel{height:78px;border-radius:18px;background:linear-gradient(90deg,var(--card-solid),#18301f,var(--card-solid));background-size:200% 100%;animation:sh 1.2s infinite}
+  .skel{height:78px;border-radius:4px;background:linear-gradient(90deg,var(--card),#24211a,var(--card));background-size:200% 100%;animation:sh 1.2s infinite}
   @keyframes sh{to{background-position:-200% 0}}
+
+  /* ---------- Kariyer ---------- */
+  .hero{display:flex;align-items:center;gap:16px;padding:20px 18px 14px}
+  .hero .face{width:88px;height:88px;font-size:40px}
+  .hero h2{margin:0;font:36px/1 var(--display);color:var(--amber);text-shadow:0 0 12px var(--glow)}
+  .hero p{margin:6px 0 0;color:var(--muted);font-size:12.5px}
+  .clubs{padding:4px 14px calc(30px + var(--safe-b));display:flex;flex-direction:column;gap:6px}
+  .club{display:flex;align-items:center;gap:14px;padding:9px 12px;border-radius:4px;background:var(--card);border:1px solid var(--line);animation:rise .3s both}
+  .club b{display:block;font:27px/1 var(--display)}
+  .club small{display:block;margin-top:3px;color:var(--faint);font-size:11.5px}
+  .club.cur{border-color:rgba(255,178,26,.6)}
+  .club>div{min-width:0}
+  .sec{margin:14px 2px 4px}
 
   @media (min-width:520px){ .app{border-left:1px solid var(--line);border-right:1px solid var(--line)} }
   @media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important} }
@@ -170,63 +180,69 @@
 
   <!-- ANA EKRAN -->
   <section class="home">
-    <div class="brand">
-      <div class="logo">3·2·1 <span>ORTAK</span></div>
-      <div class="tag">ilk söyleyen kazanır</div>
-    </div>
-
+    <div class="logo">3-2-1!</div>
     <div class="match">
-      <button class="slot empty" id="slotA" data-k="a"></button>
-      <div class="mid">
-        <div class="vs">VS</div>
-        <button class="swap" id="swap" aria-label="Takımları değiştir">⇄</button>
-      </div>
-      <button class="slot empty" id="slotB" data-k="b"></button>
+      <button class="slot empty" id="slotA"></button>
+      <div class="vs">VS</div>
+      <button class="slot empty" id="slotB"></button>
     </div>
-
-    <p class="hint" id="hint">İki takım seç, ortak oyuncuyu ilk söyleyen kazansın.</p>
+    <p class="hint" id="hint"></p>
     <div class="cta">
       <button class="go" id="go" disabled>3 · 2 · 1</button>
-      <button class="ghost" id="random">🎲 Rastgele eşleşme</button>
+      <div class="duo">
+        <button class="ghost" id="random">🎲 Rastgele</button>
+        <button class="ghost" id="careerBtn">👤 Oyuncu kariyeri</button>
+      </div>
     </div>
   </section>
 
-  <!-- TAKIM SEÇ -->
-  <section class="sheet" id="sheet" aria-hidden="true">
+  <!-- TAKIM / OYUNCU SEÇ -->
+  <section class="layer sheet" id="sheet" aria-hidden="true">
     <div class="sheet-top">
       <div class="sheet-title">
-        <button class="iconbtn" id="sheetClose" aria-label="Kapat">✕</button>
-        <span id="sheetTitle">1. takımı seç</span>
+        <button class="iconbtn" data-back aria-label="Kapat">✕</button>
+        <span class="title" id="sheetTitle"></span>
       </div>
       <label class="search" id="searchBox">
-        <span style="color:var(--muted)">⌕</span>
-        <input id="q" type="search" placeholder="Takım ara… (ör. Ajax, Trabzonspor)" autocomplete="off" enterkeyhint="search">
+        <span class="ic">⌕</span>
+        <input id="q" type="search" autocomplete="off" enterkeyhint="search">
         <span class="spin"></span>
       </label>
     </div>
-    <div class="sheet-body" id="sheetBody"></div>
+    <div class="scroll sheet-body" id="sheetBody"></div>
   </section>
 
   <!-- SONUÇLAR -->
-  <section class="results" id="results" aria-hidden="true">
-    <div class="res-top">
-      <button class="iconbtn" id="resBack" aria-label="Geri">←</button>
+  <section class="layer results" id="results" aria-hidden="true">
+    <div class="bar">
+      <button class="iconbtn" data-back aria-label="Geri">←</button>
       <div class="res-match" id="resMatch"></div>
-      <div style="width:40px"></div>
+      <div style="width:12px"></div>
     </div>
-    <div class="res-bar">
-      <div class="res-count" id="resCount"></div>
-      <div class="seg" id="seg">
-        <button data-k="smart" class="on">Akıllı</button>
-        <button data-k="fame">Ünlü</button>
-        <button data-k="recent">Yeni</button>
+    <div class="tools" id="tools">
+      <div class="tools-row">
+        <div class="res-count" id="resCount"></div>
+        <button class="toggle" id="onlyNow"><i></i>Güncel</button>
       </div>
+      <label class="search">
+        <span class="ic">⌕</span>
+        <input id="filter" type="search" placeholder="Listede oyuncu ara…" autocomplete="off">
+      </label>
     </div>
-    <div class="res-list" id="resList"></div>
+    <div class="scroll"><div class="res-list" id="resList"></div></div>
     <div class="res-cta">
       <button class="ghost" id="resRandom" aria-label="Rastgele eşleşme">🎲</button>
       <button class="go" id="again">YENİ TUR</button>
     </div>
+  </section>
+
+  <!-- KARİYER -->
+  <section class="layer career" id="career" aria-hidden="true">
+    <div class="bar">
+      <button class="iconbtn" data-back aria-label="Geri">←</button>
+      <span class="title">Kariyer</span>
+    </div>
+    <div class="scroll" id="careerBody"></div>
   </section>
 
   <!-- GERİ SAYIM -->
@@ -241,10 +257,10 @@ const API = 'https://www.wikidata.org/w/api.php';
 const SPARQL = 'https://query.wikidata.org/sparql';
 const WIKI = 'https://en.wikipedia.org/w/api.php';
 const NOW = new Date().getFullYear();
-// Futbol takımı sınıfları: kulüp, erkek takımı, milli takım, futbol takımı
-const CLASSES = 'wd:Q476028 wd:Q103229495 wd:Q6979593 wd:Q15944511';
+const CLASSES = 'wd:Q476028 wd:Q103229495 wd:Q6979593 wd:Q15944511';   // futbol takımı sınıfları
+const FOOTBALLER = 'wd:Q937857';
 
-// Hazır popüler takımlar (Wikidata ID'leri) — telefondan yazmadan tek dokunuşla seçmek için
+// Hazır popüler takımlar — telefondan yazmadan tek dokunuşla seçmek için
 const POPULAR = [
   ['Q495299','Galatasaray'],['Q6601875','Fenerbahçe'],['Q172567','Beşiktaş'],['Q192641','Trabzonspor'],
   ['Q8682','Real Madrid'],['Q7156','Barcelona'],['Q8701','Atlético'],['Q18656','Man United'],
@@ -254,34 +270,56 @@ const POPULAR = [
   ['Q483020','PSG'],['Q81888','Ajax'],['Q131499','Benfica'],['Q128446','Porto'],
 ].map(([id, name]) => ({ id, name }));
 
-// Tarayıcı hafızası (gizli sekmede çalışmayabilir, o yüzden try/catch)
 const LS = {
   get(k){ try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
   set(k,v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
 };
-const logos = LS.get('logos_v1') || {};          // takım id -> logo url
-const names = {};                                 // takım id -> kısa isim
+const logos = LS.get('logos_v1') || {};   // takım id -> logo url
+const names = {};                          // takım id -> kısa isim
 POPULAR.forEach(t => names[t.id] = t.name);
 
-const state = { a:null, b:null, slot:'a', sort:'smart', players:[], key:null };
-const pending = {};                               // çiftler için devam eden istekler
+const state = { a:null, b:null, slot:'a', mode:'team', players:[], key:null, onlyNow:false, filter:'' };
+const pending = {};
 
 const $ = id => document.getElementById(id);
 const qid = uri => uri.split('/').pop();
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const pairKey = (a,b) => [a,b].sort().join('-');
+const yr = v => { const n = parseInt(v, 10); return isNaN(n) ? null : n; };
+const label = r => (r.tr || r.mul || r.en)?.value;
+// "Çağlar Söyüncü" ile "caglar soyuncu" eşleşsin
+const fold = s => String(s).toLocaleLowerCase('tr').replace(/ı/g,'i').normalize('NFD').replace(/[̀-ͯ]/g,'');
+const initials = n => (n || '?').split(/\s+/).map(w => w[0]).join('').slice(0, 3).toUpperCase();
+const photo = (url, w) => url ? url.replace('http://','https://') + '?width=' + w : null;
 
-// "Liverpool F.C." -> "Liverpool", "AS Roma" -> "Roma"
-function shortName(label){
+function shortName(l){
   const drop = new Set(['FC','CF','SK','JK','AFC','SSC','AS','SL','FK','SC']);
-  const kept = label.split(/\s+/).filter(w => !drop.has(w.replace(/\./g,'').toUpperCase()));
-  return kept.join(' ') || label;
+  const kept = l.split(/\s+/).filter(w => !drop.has(w.replace(/\./g,'').toUpperCase()));
+  return kept.join(' ') || l;
 }
 
 /* =========================================================
-   WIKIDATA / WIKIPEDIA İSTEKLERİ
+   "ŞU AN BU TAKIMDA MI?" — Wikidata'da bitiş tarihi unutulmuş
+   kayıtlar çok. Bitişi olmayan bir dönemi ancak şu şartlarla
+   "şu an" sayıyoruz:
+   - oyuncu hayatta,
+   - bu dönemden SONRA başka kulübe geçmemiş,
+   - 40 yaşından büyük değil,
+   - dönem son 4 yılda başlamış YA DA oyuncu hâlâ 34 yaş altı.
    ========================================================= */
-// Her istek en fazla `ms` bekler; takılırsa hata verir (sonsuza kadar "aranıyor" kalmasın)
+function isNow(sp, m = {}){
+  if (!sp[0] || sp[1]) return false;
+  if (m.dead) return false;
+  if (m.latest && m.latest > sp[0]) return false;
+  const age = m.born ? NOW - m.born : null;
+  if (age !== null && age > 40) return false;
+  return sp[0] >= NOW - 4 || (age !== null && age <= 34);
+}
+const years = (sp, m) => !sp[0] ? '?' : sp[0] === sp[1] ? `${sp[0]}` : `${sp[0]}–${sp[1] || (isNow(sp, m) ? 'şimdi' : '?')}`;
+
+/* =========================================================
+   İSTEKLER
+   ========================================================= */
 async function getJSON(url, signal, ms = 9000){
   const c = new AbortController();
   const t = setTimeout(() => c.abort(new Error('Bağlantı çok yavaş')), ms);
@@ -292,29 +330,38 @@ async function getJSON(url, signal, ms = 9000){
     return await res.json();
   } finally { clearTimeout(t); }
 }
-async function sparql(query, signal, ms){
-  return (await getJSON(SPARQL + '?format=json&query=' + encodeURIComponent(query), signal, ms)).results.bindings;
-}
+const sparql = async (q, signal, ms) => (await getJSON(SPARQL + '?format=json&query=' + encodeURIComponent(q), signal, ms)).results.bindings;
+const searchApi = (text, signal) => getJSON(`${API}?action=wbsearchentities&format=json&origin=*&language=tr&uselang=tr&type=item&limit=15&search=${encodeURIComponent(text)}`, signal, 6000);
+const enTitle = v => `OPTIONAL { ?a schema:about ${v}; schema:isPartOf <https://en.wikipedia.org/>; schema:name ?title }`;
 
-// Takım arama: isimle ara + sadece futbol takımlarını tut (tek hızlı sorgu)
 async function searchTeams(text, signal){
-  const url = `${API}?action=wbsearchentities&format=json&origin=*&language=tr&uselang=tr&type=item&limit=12&search=${encodeURIComponent(text)}`;
-  const items = (await getJSON(url, signal, 6000)).search || [];
+  const items = (await searchApi(text, signal)).search || [];
   if (!items.length) return [];
   const rows = await sparql(`SELECT ?t ?title ?logo WHERE {
       VALUES ?t { ${items.map(i => 'wd:' + i.id).join(' ')} }
-      ?t wdt:P31 ?c . VALUES ?c { ${CLASSES} }
-      OPTIONAL { ?a schema:about ?t; schema:isPartOf <https://en.wikipedia.org/>; schema:name ?title }
-      OPTIONAL { ?t wdt:P154 ?logo } }`, signal);
+      ?t wdt:P31 ?c . VALUES ?c { ${CLASSES} } ${enTitle('?t')} OPTIONAL { ?t wdt:P154 ?logo } }`, signal);
   const info = {};
-  rows.forEach(r => { const id = qid(r.t.value); info[id] ??= { title: r.title?.value, logo: r.logo?.value }; });
+  rows.forEach(r => { info[qid(r.t.value)] ??= { title: r.title?.value, logo: r.logo?.value }; });
   const teams = items.filter(i => info[i.id]).map(i => ({ id:i.id, name:shortName(i.label), desc:i.description || '' }));
   teams.forEach(t => names[t.id] ??= t.name);
-  resolveLogos(info);  // logolar arka planda gelir, liste beklemez
+  resolveLogos(info);
   return teams;
 }
 
-// Logo: önce Wikipedia sayfasındaki güncel arma, yoksa Wikidata'daki logo
+async function searchPlayers(text, signal){
+  const items = (await searchApi(text, signal)).search || [];
+  if (!items.length) return [];
+  const rows = await sparql(`SELECT ?p ?img ?links WHERE {
+      VALUES ?p { ${items.map(i => 'wd:' + i.id).join(' ')} }
+      ?p wdt:P106 ${FOOTBALLER} ; wikibase:sitelinks ?links . OPTIONAL { ?p wdt:P18 ?img } }`, signal);
+  const info = {};
+  rows.forEach(r => { info[qid(r.p.value)] ??= { img: r.img?.value || null, links: +r.links.value }; });
+  return items.filter(i => info[i.id])
+    .map(i => ({ id:i.id, name:i.label, desc:i.description || '', ...info[i.id] }))
+    .sort((x, y) => y.links - x.links).slice(0, 10);
+}
+
+// Logo: önce Wikipedia sayfasındaki güncel arma, yoksa Wikidata logosu
 async function resolveLogos(info){
   const ids = Object.keys(info).filter(id => !(id in logos));
   if (!ids.length) return paintLogos();
@@ -322,49 +369,61 @@ async function resolveLogos(info){
   const thumbs = {};
   if (titles.length) {
     try {
-      const p = new URLSearchParams({ action:'query', format:'json', origin:'*', prop:'pageimages', piprop:'thumbnail',
-        pithumbsize:'160', pilicense:'any', pilimit:'50', redirects:'1', titles:titles.join('|') });
-      const d = await getJSON(WIKI + '?' + p);
-      const jump = {}; [...(d.query.normalized || []), ...(d.query.redirects || [])].forEach(n => jump[n.from] = n.to);
-      const pages = {}; Object.values(d.query.pages || {}).forEach(pg => { if (pg.thumbnail) pages[pg.title] = pg.thumbnail.source; });
-      titles.forEach(t => { let k = t; for (let i = 0; i < 3 && jump[k]; i++) k = jump[k]; if (pages[k]) thumbs[t] = pages[k]; });
-    } catch { return; }   // ağ hatasında boş logo kaydetme, sonra tekrar dener
+      for (let i = 0; i < titles.length; i += 50) {
+        const part = titles.slice(i, i + 50);
+        const p = new URLSearchParams({ action:'query', format:'json', origin:'*', prop:'pageimages', piprop:'thumbnail',
+          pithumbsize:'160', pilicense:'any', pilimit:'50', redirects:'1', titles:part.join('|') });
+        const d = await getJSON(WIKI + '?' + p);
+        const jump = {}; [...(d.query.normalized || []), ...(d.query.redirects || [])].forEach(n => jump[n.from] = n.to);
+        const pages = {}; Object.values(d.query.pages || {}).forEach(pg => { if (pg.thumbnail) pages[pg.title] = pg.thumbnail.source; });
+        part.forEach(t => { let k = t; for (let j = 0; j < 3 && jump[k]; j++) k = jump[k]; if (pages[k]) thumbs[t] = pages[k]; });
+      }
+    } catch { return; }
   }
-  ids.forEach(id => {
-    const i = info[id];
-    logos[id] = thumbs[i.title] || (i.logo ? i.logo.replace('http://','https://') + '?width=160' : '');
-  });
+  ids.forEach(id => { const i = info[id]; logos[id] = thumbs[i.title] || (i.logo ? photo(i.logo, 160) : ''); });
   LS.set('logos_v1', logos);
   paintLogos();
 }
-
-// Elimizde sadece ID olan takımların logolarını getir
 async function ensureLogos(ids){
   const need = [...new Set(ids)].filter(id => !(id in logos));
   if (!need.length) return paintLogos();
   try {
     const rows = await sparql(`SELECT ?t ?title ?logo WHERE {
-        VALUES ?t { ${need.map(i => 'wd:' + i).join(' ')} }
-        OPTIONAL { ?a schema:about ?t; schema:isPartOf <https://en.wikipedia.org/>; schema:name ?title }
-        OPTIONAL { ?t wdt:P154 ?logo } }`);
-    const info = {};
-    rows.forEach(r => { const id = qid(r.t.value); info[id] ??= { title: r.title?.value, logo: r.logo?.value }; });
+        VALUES ?t { ${need.map(i => 'wd:' + i).join(' ')} } ${enTitle('?t')} OPTIONAL { ?t wdt:P154 ?logo } }`);
+    const info = {}; need.forEach(id => info[id] = {});
+    rows.forEach(r => { const id = qid(r.t.value); info[id] = { title: info[id].title || r.title?.value, logo: info[id].logo || r.logo?.value }; });
     await resolveLogos(info);
   } catch {}
 }
 
-// İki takımda da oynamış oyuncular (yavaş etiket servisi yerine doğrudan etiket okuyoruz: ~5x hızlı)
+// Oyuncuların doğum yılı, ölüm bilgisi ve (milli takımlar hariç) en son kulübe katıldığı yıl
+async function playerMeta(ids){
+  if (!ids.length) return {};
+  // UNION: her bilgi ayrı satır gelir, hesap tarayıcıda yapılır (~0.2 sn)
+  const rows = await sparql(`SELECT ?p ?s ?b ?d WHERE {
+      VALUES ?p { ${ids.map(i => 'wd:' + i).join(' ')} }
+      { ?p p:P54 ?st . ?st pq:P580 ?s ; ps:P54 ?t . ?t wdt:P31 wd:Q476028 . }
+      UNION { ?p wdt:P569 ?b } UNION { ?p wdt:P570 ?d } }`, null, 12000);
+  const m = {};
+  rows.forEach(r => {
+    const x = m[qid(r.p.value)] ??= { latest: null, born: null, dead: false };
+    if (r.s) x.latest = Math.max(x.latest || 0, yr(r.s.value) || 0) || null;
+    if (r.b) x.born ??= yr(r.b.value);
+    if (r.d) x.dead = true;
+  });
+  return m;
+}
+
+// İki takımda da oynamış oyuncular
 async function fetchPair(a, b){
-  const key = 'pair_v1:' + pairKey(a, b);
+  const key = 'pair_v2:' + pairKey(a, b);
   const cached = LS.get(key);
-  if (cached && Date.now() - cached.t < 6 * 3600e3) return cached.d;   // 6 saat önbellek
+  if (cached && Date.now() - cached.t < 6 * 3600e3) return cached.d;
 
   const rows = await sparql(`SELECT ?p ?links ?img ?team ?start ?end ?tr ?mul ?en WHERE {
-      ?p p:P54/ps:P54 wd:${a} . ?p p:P54/ps:P54 wd:${b} .
-      ?p wikibase:sitelinks ?links .
+      ?p p:P54/ps:P54 wd:${a} . ?p p:P54/ps:P54 wd:${b} . ?p wikibase:sitelinks ?links .
       ?p p:P54 ?st . ?st ps:P54 ?team . VALUES ?team { wd:${a} wd:${b} }
-      OPTIONAL { ?st pq:P580 ?start } OPTIONAL { ?st pq:P582 ?end }
-      OPTIONAL { ?p wdt:P18 ?img }
+      OPTIONAL { ?st pq:P580 ?start } OPTIONAL { ?st pq:P582 ?end } OPTIONAL { ?p wdt:P18 ?img }
       OPTIONAL { ?p rdfs:label ?tr  FILTER(LANG(?tr)  = "tr")  }
       OPTIONAL { ?p rdfs:label ?mul FILTER(LANG(?mul) = "mul") }
       OPTIONAL { ?p rdfs:label ?en  FILTER(LANG(?en)  = "en")  } }`, null, 20000);
@@ -372,21 +431,68 @@ async function fetchPair(a, b){
   const map = new Map();
   for (const r of rows) {
     const id = qid(r.p.value);
-    if (!map.has(id)) map.set(id, {
-      id, name: (r.tr || r.mul || r.en)?.value || id, links: +r.links.value,
-      img: r.img ? r.img.value.replace('http://','https://') : null, s: { [a]:[], [b]:[] } });
-    const pl = map.get(id);
-    const sp = [r.start ? parseInt(r.start.value) : null, r.end ? parseInt(r.end.value) : null];
-    const list = pl.s[qid(r.team.value)];
+    if (!map.has(id)) map.set(id, { id, name: label(r) || id, links: +r.links.value, img: r.img?.value || null, s: { [a]:[], [b]:[] } });
+    const sp = [yr(r.start?.value), yr(r.end?.value)];
+    const list = map.get(id).s[qid(r.team.value)];
     if (!list.some(x => x[0] === sp[0] && x[1] === sp[1])) list.push(sp);
   }
   const d = [...map.values()];
-  d.forEach(p => Object.values(p.s).forEach(l => l.sort((x,y) => (x[0]||0) - (y[0]||0))));
+  d.forEach(p => Object.values(p.s).forEach(l => l.sort((x, y) => (x[0] || 0) - (y[0] || 0))));
+
+  d.forEach(p => p.m = {});
+  if (d.length) LS.set(key, { t: Date.now(), d, meta: false });   // boş sonucu saklama (geçici hata olabilir)
+  return d;
+}
+
+// Bitişi olmayan dönemi olanlar için ek bilgi (yanlış "şu an" etiketlerini ayıklamak için).
+// Sonuçları bekletmez: arka planda gelir, gelince liste güncellenir.
+async function enrichPair(a, b, d){
+  const key = 'pair_v2:' + pairKey(a, b);
+  if (LS.get(key)?.meta) return false;
+  const open = d.filter(p => Object.values(p.s).some(l => l.some(sp => sp[0] && !sp[1]))).map(p => p.id);
+  if (open.length) {
+    const meta = await playerMeta(open);
+    d.forEach(p => p.m = meta[p.id] || p.m || {});
+  }
+  if (d.length) LS.set(key, { t: Date.now(), d, meta: true });
+  return open.length > 0;
+}
+
+// Bir oyuncunun bütün takımları
+async function fetchCareer(id){
+  const key = 'career_v1:' + id;
+  const cached = LS.get(key);
+  if (cached && Date.now() - cached.t < 6 * 3600e3) return cached.d;
+  const rows = await sparql(`SELECT ?team ?start ?end ?tr ?mul ?en ?nat ?born ?dead WHERE {
+      wd:${id} p:P54 ?st . ?st ps:P54 ?team .
+      OPTIONAL { ?st pq:P580 ?start } OPTIONAL { ?st pq:P582 ?end }
+      OPTIONAL { ?team rdfs:label ?tr  FILTER(LANG(?tr)  = "tr")  }
+      OPTIONAL { ?team rdfs:label ?mul FILTER(LANG(?mul) = "mul") }
+      OPTIONAL { ?team rdfs:label ?en  FILTER(LANG(?en)  = "en")  }
+      BIND(EXISTS { ?team wdt:P31 wd:Q6979593 } AS ?nat)
+      OPTIONAL { wd:${id} wdt:P569 ?born } OPTIONAL { wd:${id} wdt:P570 ?dead } }`, null, 15000);
+  const map = new Map(); let born = null, dead = false;
+  for (const r of rows) {
+    born ??= yr(r.born?.value); dead ||= !!r.dead;
+    const tid = qid(r.team.value);
+    // Milli takım mı? (genç milli takımlar da: "Spain national under-21 ...")
+    const nat = r.nat?.value === 'true' || /\bnational\b/i.test(r.en?.value || '') || /mill[iî]/i.test(r.tr?.value || '');
+    let name = shortName(label(r) || tid);
+    if (nat) name = name.replace(/\s*mill[iî]\s+futbol\s+takımı/i, '').replace(/\s+national\s+(association\s+)?football\s+team/i, '');
+    if (!map.has(tid)) map.set(tid, { id: tid, name, nat, s: [] });
+    const sp = [yr(r.start?.value), yr(r.end?.value)];
+    const t = map.get(tid);
+    if (!t.s.some(x => x[0] === sp[0] && x[1] === sp[1])) t.s.push(sp);
+  }
+  const teams = [...map.values()];
+  teams.forEach(t => t.s.sort((x, y) => (x[0] || 9999) - (y[0] || 9999)));
+  teams.sort((x, y) => (x.s[0][0] || 9999) - (y.s[0][0] || 9999));
+  const latest = Math.max(0, ...teams.filter(t => !t.nat).flatMap(t => t.s.map(sp => sp[0] || 0))) || null;
+  const d = { teams, m: { born, dead, latest } };
   LS.set(key, { t: Date.now(), d });
   return d;
 }
 
-// Takımlar seçilir seçilmez arka planda yüklemeye başla
 function prefetch(){
   const { a, b } = state;
   if (!a || !b || a.id === b.id) return null;
@@ -395,31 +501,32 @@ function prefetch(){
   return pending[k];
 }
 
-// Ünlülük + güncellik puanı
+// Sıralama: ünlülük + güncellik birlikte
 function score(players, a, b){
-  const isNow = sp => sp[0] && !sp[1] && sp[0] >= NOW - 8;   // bitişi yoksa ve yeni başladıysa hâlâ orada
   return players.map(p => {
     const all = [...p.s[a], ...p.s[b]];
-    const cur = [a, b].find(t => p.s[t].some(isNow)) || null;
-    const last = Math.max(0, ...all.map(sp => sp[1] || (isNow(sp) ? NOW : sp[0]) || 0));
+    const cur = [a, b].find(t => p.s[t].some(sp => isNow(sp, p.m))) || null;
+    const last = Math.max(0, ...all.map(sp => sp[1] || (isNow(sp, p.m) ? NOW : sp[0]) || 0));
     const ago = last ? Math.max(0, NOW - last) : 30;
-    return { ...p, cur, last, smart: p.links * (0.35 + 0.65 * Math.exp(-ago / 12)) * (cur ? 1.3 : 1) };
-  });
+    return { ...p, cur, smart: p.links * (0.35 + 0.65 * Math.exp(-ago / 12)) * (cur ? 1.3 : 1) };
+  }).sort((x, y) => y.smart - x.smart).map((p, i) => ({ ...p, rank: i + 1 }));
 }
 
 /* =========================================================
    ARAYÜZ
    ========================================================= */
-const initials = n => (n || '?').split(/\s+/).map(w => w[0]).join('').slice(0, 3).toUpperCase();
 const crest = (id, cls = '') => `<span class="crest ${cls}" data-id="${id}">${esc(initials(names[id]))}</span>`;
+const face = (p, cls = '') => p.img
+  ? `<img class="face ${cls}" loading="lazy" alt="" src="${esc(photo(p.img, 160))}" data-ini="${esc(initials(p.name).slice(0, 2))}" onerror="faceFail(this)">`
+  : `<div class="face ${cls}">${esc(initials(p.name).slice(0, 2))}</div>`;
+window.faceFail = img => { const d = document.createElement('div'); d.className = img.className; d.textContent = img.dataset.ini; img.replaceWith(d); };
 
 function paintLogos(root = document){
   root.querySelectorAll('.crest[data-id]').forEach(el => {
     const url = logos[el.dataset.id];
     if (!url || el.dataset.src === url) return;
     el.dataset.src = url;
-    const img = new Image();
-    img.alt = ''; img.decoding = 'async';
+    const img = new Image(); img.alt = ''; img.decoding = 'async';
     img.onload = () => { el.textContent = ''; el.appendChild(img); };
     img.src = url;
   });
@@ -429,9 +536,8 @@ function renderSlots(){
   for (const k of ['a','b']) {
     const el = $(k === 'a' ? 'slotA' : 'slotB'), t = state[k];
     el.classList.toggle('empty', !t);
-    el.innerHTML = t
-      ? `${crest(t.id)}<span class="nm">${esc(t.name)}</span>`
-      : `<span class="crest">+</span><span class="nm">${k === 'a' ? '1.' : '2.'} takım</span>`;
+    el.innerHTML = t ? `${crest(t.id)}<span class="nm">${esc(t.name)}</span>`
+                     : `<span class="crest">+</span><span class="nm">${k === 'a' ? '1.' : '2.'} takım</span>`;
   }
   paintLogos($('slotA').parentNode);
   const ok = state.a && state.b && state.a.id !== state.b.id;
@@ -449,28 +555,46 @@ function setTeam(k, t){
     LS.set('recent_v1', rec.slice(0, 10));
   }
   renderSlots();
+  if (t) ensureLogos([t.id]);
   prefetch()?.catch(() => {});
 }
 
-/* ---------- Katmanlar ve geri tuşu ---------- */
+/* ---------- Katmanlar ve telefonun geri tuşu ---------- */
 const layers = [];
-function openLayer(el){ el.classList.add('open'); el.setAttribute('aria-hidden','false'); layers.push(el); history.pushState({ l: layers.length }, ''); }
-function closeTop(){ const el = layers.pop(); if (el){ el.classList.remove('open'); el.setAttribute('aria-hidden','true'); } }
-window.addEventListener('popstate', closeTop);
+function show(el, on){ el.classList.toggle('open', on); el.setAttribute('aria-hidden', String(!on)); }
+function openLayer(el){ show(el, true); layers.push(el); history.pushState({ l: layers.length }, ''); }
+function swapTop(el){ const old = layers.pop(); if (old) show(old, false); show(el, true); layers.push(el); }  // geçmişe yeni adım eklemeden değiştir
+window.addEventListener('popstate', () => { const el = layers.pop(); if (el) show(el, false); });
 const back = () => history.back();
+document.querySelectorAll('[data-back]').forEach(b => b.addEventListener('click', back));
 
-/* ---------- Takım seçme paneli ---------- */
+/* ---------- Seçme paneli (takım veya oyuncu) ---------- */
 let searchTimer, searchCtrl;
-function openSheet(k){
-  state.slot = k;
-  $('sheetTitle').textContent = (k === 'a' ? '1.' : '2.') + ' takımı seç';
+const lastPlayers = {};
+function openSheet(mode, slot){
+  state.mode = mode; state.slot = slot || 'a';
+  setSheetHeader();
   $('q').value = '';
   renderSheetHome();
   openLayer($('sheet'));
   setTimeout(() => $('q').focus(), 50);
 }
+function setSheetHeader(){
+  const team = state.mode === 'team';
+  $('sheetTitle').textContent = team ? (state.slot === 'a' ? '1.' : '2.') + ' takımı seç' : 'Oyuncu kariyeri';
+  $('q').placeholder = team ? 'Takım ara… (ör. Ajax, Trabzonspor)' : 'Oyuncu adı… (ör. Hagi, Quaresma)';
+}
+const playerRow = p => `<button class="row" data-pid="${p.id}">${face(p, 'sm')}<div><b>${esc(p.name)}</b><small>${esc(p.desc)}</small></div></button>`;
 function renderSheetHome(){
-  const rec = (LS.get('recent_v1') || []);
+  if (state.mode === 'player') {
+    const rec = LS.get('recentp_v1') || [];
+    rec.forEach(p => lastPlayers[p.id] = p);
+    $('sheetBody').innerHTML = rec.length
+      ? `<div class="label">Son bakılanlar</div><div class="rows">${rec.map(playerRow).join('')}</div>`
+      : `<div class="empty-msg">Bir futbolcunun adını yaz,<br>oynadığı bütün takımları gör.</div>`;
+    return;
+  }
+  const rec = LS.get('recent_v1') || [];
   rec.forEach(t => names[t.id] ??= t.name);
   $('sheetBody').innerHTML =
     (rec.length ? `<div class="label">Son seçilenler</div><div class="recent">${
@@ -480,13 +604,7 @@ function renderSheetHome(){
   paintLogos($('sheetBody'));
   ensureLogos([...POPULAR.map(t => t.id), ...rec.map(t => t.id)]);
 }
-function renderSearch(list){
-  $('sheetBody').innerHTML = list.length
-    ? `<div class="rows">${list.map(t => `<button class="row" data-id="${t.id}" data-name="${esc(t.name)}">
-        ${crest(t.id, 'sm')}<div><b>${esc(t.name)}</b><small>${esc(t.desc)}</small></div></button>`).join('')}</div>`
-    : `<div class="empty-msg">Futbol takımı bulunamadı.<br>Farklı yazmayı dene (ör. "Inter" yerine "Internazionale").</div>`;
-  paintLogos($('sheetBody'));
-}
+
 $('q').addEventListener('input', () => {
   clearTimeout(searchTimer); searchCtrl?.abort();
   const q = $('q').value.trim();
@@ -494,43 +612,60 @@ $('q').addEventListener('input', () => {
   $('searchBox').classList.add('searching');
   searchTimer = setTimeout(async () => {
     searchCtrl = new AbortController();
-    try { renderSearch(await searchTeams(q, searchCtrl.signal)); $('searchBox').classList.remove('searching'); }
-    catch (e) { if (e.name !== 'AbortError') { $('searchBox').classList.remove('searching');
-      $('sheetBody').innerHTML = '<div class="empty-msg">Bağlantı hatası, tekrar dene.</div>'; } }
+    try {
+      if (state.mode === 'team') {
+        const list = await searchTeams(q, searchCtrl.signal);
+        $('sheetBody').innerHTML = list.length
+          ? `<div class="rows">${list.map(t => `<button class="row" data-id="${t.id}" data-name="${esc(t.name)}">
+              ${crest(t.id, 'sm')}<div><b>${esc(t.name)}</b><small>${esc(t.desc)}</small></div></button>`).join('')}</div>`
+          : `<div class="empty-msg">Futbol takımı bulunamadı.<br>Farklı yazmayı dene.</div>`;
+        paintLogos($('sheetBody'));
+      } else {
+        const list = await searchPlayers(q, searchCtrl.signal);
+        list.forEach(p => lastPlayers[p.id] = p);
+        $('sheetBody').innerHTML = list.length ? `<div class="rows">${list.map(playerRow).join('')}</div>`
+          : `<div class="empty-msg">Futbolcu bulunamadı.<br>Soyadıyla aramayı dene.</div>`;
+      }
+      $('searchBox').classList.remove('searching');
+    } catch (e) {
+      if (e.name === 'AbortError') return;
+      $('searchBox').classList.remove('searching');
+      $('sheetBody').innerHTML = '<div class="empty-msg">Bağlantı hatası, tekrar dene.</div>';
+    }
   }, 220);
 });
-$('sheetBody').addEventListener('click', e => {
-  const b = e.target.closest('[data-id]'); if (!b) return;
-  const t = { id: b.dataset.id, name: b.dataset.name };
-  setTeam(state.slot, t);
-  const other = state.slot === 'a' ? 'b' : 'a';
-  if (!state[other]) {           // diğer takım boşsa direkt onu seçtir
-    state.slot = other;
-    $('sheetTitle').textContent = (other === 'a' ? '1.' : '2.') + ' takımı seç';
-    $('q').value = ''; renderSheetHome(); $('q').focus();
-  } else back();
-});
-$('sheetClose').addEventListener('click', back);
 
-/* ---------- Ana ekran butonları ---------- */
-$('slotA').addEventListener('click', () => openSheet('a'));
-$('slotB').addEventListener('click', () => openSheet('b'));
-$('swap').addEventListener('click', () => { [state.a, state.b] = [state.b, state.a]; renderSlots(); });
+$('sheetBody').addEventListener('click', e => {
+  const pb = e.target.closest('[data-pid]');
+  if (pb) {
+    const p = lastPlayers[pb.dataset.pid];
+    if (p) { $('q').blur(); swapTop($('career')); showCareer(p, true); }
+    return;
+  }
+  const b = e.target.closest('[data-id]'); if (!b) return;
+  setTeam(state.slot, { id: b.dataset.id, name: b.dataset.name });
+  const other = state.slot === 'a' ? 'b' : 'a';
+  if (!state[other]) { state.slot = other; setSheetHeader(); $('q').value = ''; renderSheetHome(); $('q').focus(); }
+  else back();
+});
+
+/* ---------- Ana ekran ---------- */
+$('slotA').addEventListener('click', () => openSheet('team', 'a'));
+$('slotB').addEventListener('click', () => openSheet('team', 'b'));
+$('careerBtn').addEventListener('click', () => openSheet('player'));
 function randomPair(){
   const pick = () => POPULAR[Math.floor(Math.random() * POPULAR.length)];
   let a = pick(), b = pick();
   while (b.id === a.id || (state.a && a.id === state.a.id && b.id === state.b?.id)) { a = pick(); b = pick(); }
   setTeam('a', a); setTeam('b', b);
-  document.querySelectorAll('.slot .crest').forEach(c => c.animate(
-    [{ transform:'rotateY(0)' }, { transform:'rotateY(360deg)' }], { duration: 500, easing: 'ease-out' }));
+  document.querySelectorAll('.slot .crest').forEach(c => c.animate([{ transform:'rotateY(0)' }, { transform:'rotateY(360deg)' }], { duration: 500, easing: 'ease-out' }));
 }
 $('random').addEventListener('click', randomPair);
 
 /* ---------- 3·2·1 geri sayım ---------- */
 let skipped = false, wake = null;
-$('count').addEventListener('click', () => { skipped = true; wake?.(); });   // dokununca geri sayımı atla
+$('count').addEventListener('click', () => { skipped = true; wake?.(); });
 const wait = ms => new Promise(r => { const t = setTimeout(r, ms); wake = () => { clearTimeout(t); r(); }; });
-
 async function start(){
   const req = prefetch(); if (!req) return;
   const { a, b } = state;
@@ -547,70 +682,112 @@ async function start(){
 }
 $('go').addEventListener('click', start);
 
-/* ---------- Sonuç ekranı ---------- */
+/* ---------- Sonuçlar ---------- */
 async function showResults(a, b, req){
-  state.key = pairKey(a.id, b.id);
+  state.key = pairKey(a.id, b.id); state.players = []; state.filter = ''; state.onlyNow = false; state.loading = true;
+  $('filter').value = ''; $('onlyNow').classList.remove('on');
   $('resMatch').innerHTML = `<div class="t">${crest(a.id,'hd')}<span>${esc(a.name)}</span></div>
     <div class="v">VS</div><div class="t"><span>${esc(b.name)}</span>${crest(b.id,'hd')}</div>`;
   paintLogos($('resMatch'));
-  $('resCount').textContent = '';
+  $('tools').style.display = 'none';
   $('resList').innerHTML = '<div class="skel"></div>'.repeat(5);
   if (!$('results').classList.contains('open')) openLayer($('results'));
   try {
     const data = await req;
     if (state.key !== pairKey(a.id, b.id)) return;
     state.players = score(data, a.id, b.id);
-    renderList();
+    state.loading = false;
+    renderList(true);
+    enrichPair(a.id, b.id, data).then(changed => {
+      if (!changed || state.key !== pairKey(a.id, b.id)) return;
+      state.players = score(data, a.id, b.id);
+      renderList(false);
+    }).catch(() => {});
   } catch (e) {
-    $('resList').innerHTML = `<div class="state"><b>Bağlantı sorunu</b>${esc(e.message)}<br>
+    if (state.key !== pairKey(a.id, b.id)) return;
+    $('resList').innerHTML = `<div class="none"><b>Bağlantı sorunu</b><span>${esc(e.message)}</span><br>
       <button class="ghost" id="retry">Tekrar dene</button></div>`;
     $('retry').onclick = () => showResults(a, b, prefetch());
   }
 }
 
-function renderList(){
+function renderList(animate){
+  if (state.loading) return;   // veri gelmeden "ortak oyuncu yok" deme
   const { a, b } = state, P = state.players;
   if (!P.length) {
-    $('resCount').innerHTML = 'Ortak oyuncu <em>yok</em>';
-    $('resList').innerHTML = `<div class="state"><b>Kimse bulamaz 😅</b>Bu iki takımda birlikte oynamış oyuncu kaydı yok.</div>`;
+    $('tools').style.display = 'none';
+    $('resList').innerHTML = `<div class="none"><b>Ortak oyuncu yok! 😬</b><span>Farklı takımlar seçip tekrar deneyin.</span></div>`;
     return;
   }
-  $('resCount').innerHTML = `<em>${P.length}</em> ortak oyuncu`;
-  const sorted = [...P].sort((x, y) =>
-    state.sort === 'fame' ? y.links - x.links :
-    state.sort === 'recent' ? (y.last - x.last) || (y.links - x.links) : y.smart - x.smart);
+  $('tools').style.display = '';
+  const q = fold(state.filter.trim());
+  const shown = P.filter(p => (!state.onlyNow || p.cur) && (!q || fold(p.name).includes(q)));
+  $('resCount').innerHTML = `<em>${shown.length}</em> ortak oyuncu`;
+  $('resList').classList.toggle('calm', !animate);
+  if (!shown.length) {
+    $('resList').innerHTML = `<div class="empty-msg">${q ? 'Bu isimde ortak oyuncu yok.' : 'Şu an bu takımlarda oynayan ortak oyuncu yok.'}</div>`;
+    return;
+  }
   const max = Math.max(...P.map(p => p.links));
-  const yrs = sp => !sp[0] ? '?' : sp[0] === sp[1] ? `${sp[0]}` : `${sp[0]}–${sp[1] || (sp[0] >= NOW - 8 ? 'şimdi' : '?')}`;
-  $('resList').innerHTML = sorted.map((p, i) => {
-    const face = p.img
-      ? `<img class="face" loading="lazy" alt="" src="${esc(p.img)}?width=120" onerror="this.outerHTML='<div class=face>${esc(initials(p.name)).slice(0,2)}</div>'">`
-      : `<div class="face">${esc(initials(p.name).slice(0,2))}</div>`;
-    const sp = t => `<span class="sp">${crest(t.id,'xs')}${p.s[t.id].map(yrs).join(', ')}</span>`;
-    return `<div class="pl ${i < 3 ? 'r' + (i + 1) : ''}" style="animation-delay:${Math.min(i, 12) * 30}ms">
-      <div class="rk">${i + 1}</div>${face}
+  $('resList').innerHTML = shown.map((p, i) => {
+    const sp = t => `<span class="sp">${crest(t.id,'xs')}${p.s[t.id].map(x => years(x, p.m)).join(', ')}</span>`;
+    return `<button class="pl ${p.rank <= 3 ? 'r' + p.rank : ''}" data-pid="${p.id}" style="animation-delay:${Math.min(i, 12) * 30}ms">
+      <div class="rk">${p.rank}</div>${face(p)}
       <div>
-        <a class="pn" href="https://www.wikidata.org/wiki/${p.id}" target="_blank" rel="noopener">${esc(p.name)}</a>${
-          p.cur ? `<span class="now">şu an ${esc(p.cur === a.id ? a.name : b.name)}</span>` : ''}
+        <span class="pn">${esc(p.name)}</span>${p.cur ? `<span class="now">şu an ${esc(p.cur === a.id ? a.name : b.name)}</span>` : ''}
         <div class="sps">${sp(a)}${sp(b)}</div>
         <div class="fame"><i style="width:${Math.max(4, p.links / max * 100).toFixed(0)}%"></i></div>
-      </div></div>`;
+      </div></button>`;
   }).join('');
   paintLogos($('resList'));
 }
 
-$('seg').addEventListener('click', e => {
-  const k = e.target.dataset.k; if (!k) return;
-  state.sort = k;
-  $('seg').querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.k === k));
-  renderList(); $('resList').scrollTop = 0;
+$('filter').addEventListener('input', e => { state.filter = e.target.value; renderList(false); });
+$('onlyNow').addEventListener('click', () => {
+  state.onlyNow = !state.onlyNow; $('onlyNow').classList.toggle('on', state.onlyNow); renderList(false);
 });
-$('resBack').addEventListener('click', back);
+// Listedeki oyuncuya dokununca kariyerini aç
+$('resList').addEventListener('click', e => {
+  const b = e.target.closest('[data-pid]'); if (!b) return;
+  const p = state.players.find(x => x.id === b.dataset.pid);
+  if (p) { $('filter').blur(); openLayer($('career')); showCareer({ id: p.id, name: p.name, img: p.img, desc: '' }); }
+});
 $('again').addEventListener('click', () => { state.a = state.b = null; renderSlots(); back(); });
 $('resRandom').addEventListener('click', () => { randomPair(); back(); });
 
+/* ---------- Kariyer ---------- */
+async function showCareer(p, remember){
+  if (remember) {
+    const rec = (LS.get('recentp_v1') || []).filter(x => x.id !== p.id);
+    rec.unshift({ id: p.id, name: p.name, desc: p.desc || '', img: p.img || null });
+    LS.set('recentp_v1', rec.slice(0, 8));
+  }
+  const body = $('careerBody');
+  body.scrollTop = 0;
+  body.innerHTML = `<div class="hero">${face(p)}<div><h2>${esc(p.name)}</h2>${p.desc ? `<p>${esc(p.desc)}</p>` : ''}</div></div>
+    <div class="clubs">${'<div class="skel"></div>'.repeat(4)}</div>`;
+  try {
+    const { teams, m } = await fetchCareer(p.id);
+    teams.forEach(t => names[t.id] ??= t.name);
+    const row = (t, i) => {
+      const cur = t.s.some(sp => isNow(sp, m));
+      return `<div class="club ${cur ? 'cur' : ''}" style="animation-delay:${Math.min(i, 15) * 25}ms">${crest(t.id, 'md')}
+        <div><b>${esc(t.name)}${cur ? '<span class="now">şu an</span>' : ''}</b><small>${t.s.map(sp => years(sp, m)).join(' · ')}</small></div></div>`;
+    };
+    const clubs = teams.filter(t => !t.nat), nat = teams.filter(t => t.nat);
+    body.querySelector('.clubs').innerHTML = !teams.length ? '<div class="empty-msg">Bu oyuncunun takım kaydı yok.</div>'
+      : `<div class="label">${clubs.length} kulüp</div>${clubs.map(row).join('')}` +
+        (nat.length ? `<div class="label sec">Milli takım</div>${nat.map((t, i) => row(t, clubs.length + i)).join('')}` : '');
+    paintLogos(body);
+    ensureLogos(teams.map(t => t.id));
+  } catch (e) {
+    body.querySelector('.clubs').innerHTML = `<div class="empty-msg">Bağlantı sorunu: ${esc(e.message)}</div>`;
+  }
+}
+
 /* ---------- Başlangıç ---------- */
 renderSlots();
-ensureLogos(POPULAR.map(t => t.id));   // popüler armaları ilk açılışta indir ve hatırla
+ensureLogos(POPULAR.map(t => t.id));
 </script>
 </body>
 </html>

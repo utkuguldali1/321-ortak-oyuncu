@@ -1,4 +1,4 @@
-# 3·2·1 Ortak Oyuncu ⚽
+# 3-2-1! Ortak Oyuncu ⚽
 
 Kafede oynanan **3-2-1** oyunu için mobil web uygulaması.
 
@@ -12,8 +12,11 @@ Kafede oynanan **3-2-1** oyunu için mobil web uygulaması.
 - 🛡️ Bütün takımların armaları (Wikipedia'dan otomatik)
 - ⚡ 24 popüler takım tek dokunuşla seçilir, diğer takımlar aranabilir
 - 🔄 Veriler canlı olarak Wikidata'dan gelir, yeni transferler de görünür
-- 🏆 Akıllı / Ünlülük / Güncellik sıralaması, "şu an bu takımda" etiketi
+- 🏆 Ünlülük ve güncelliğe göre sıralama, "şu an bu takımda" etiketi ve **Güncel** filtresi
+- 🔎 Sonuç listesinde isimle arama
+- 👤 **Oyuncu kariyeri:** takım seçmeden bir futbolcu ara, oynadığı bütün kulüpleri gör
 - 🎲 Rastgele eşleşme
+- 📟 Retro stadyum skorbordu teması
 
 ## Nasıl çalışır?
 
@@ -22,6 +25,7 @@ Tek bir `index.html` dosyasından oluşur, sunucu ya da API anahtarı gerekmez.
 - **Oyuncular:** [Wikidata SPARQL](https://query.wikidata.org/) ile iki takımda da kaydı (P54) olan futbolcular çekilir.
 - **Ünlülük:** Oyuncunun kaç farklı dilde Wikipedia sayfası olduğu.
 - **Güncellik:** Takımlardaki son yılı; yakın zamandakiler öne çıkar.
+- **"Şu an" kontrolü:** Wikidata'da bitiş tarihi unutulmuş kayıtlar çok. Bitişi olmayan bir dönem ancak oyuncu hayattaysa, sonrasında başka kulübe geçmemişse, 40 yaş altındaysa ve dönem son 4 yılda başladıysa (ya da oyuncu 34 yaş altıysa) "şu an" sayılır.
 - **Armalar:** Takımın İngilizce Wikipedia sayfasındaki görsel.
 - Sonuçlar tarayıcıda 6 saat saklanır, aynı eşleşme ikinci kez anında açılır.
 
