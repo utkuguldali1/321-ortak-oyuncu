@@ -25,8 +25,9 @@ Tek bir `index.html` dosyasından oluşur, sunucu ya da API anahtarı gerekmez.
 - **Oyuncular:** [Wikidata SPARQL](https://query.wikidata.org/) ile iki takımda da kaydı (P54) olan futbolcular çekilir.
 - **Ünlülük:** Oyuncunun kaç farklı dilde Wikipedia sayfası olduğu.
 - **Güncellik:** Takımlardaki son yılı; yakın zamandakiler öne çıkar.
-- **"Şu an" kontrolü:** Wikidata'da bitiş tarihi unutulmuş kayıtlar çok. Bitişi olmayan bir dönem ancak oyuncu hayattaysa, sonrasında başka kulübe geçmemişse, 40 yaş altındaysa ve dönem son 4 yılda başladıysa (ya da oyuncu 34 yaş altıysa) "şu an" sayılır.
-- **Armalar:** Takımın İngilizce Wikipedia sayfasındaki görsel.
+- **"Şu an" kontrolü:** Wikidata'da bitiş tarihi unutulmuş kayıtlar çok, bu yüzden ona güvenilmez. Oyuncunun İngilizce Wikipedia sayfasındaki "current club" bilgisi bu takımı gösteriyorsa "şu an" yazılır; emin olunamazsa yazılmaz.
+- **Arama:** Hem baştan eşleşen hem tam metin araması yapılır ("osimhen" → Victor Osimhen).
+- **Armalar:** Önce İngilizce Wikipedia arması, yoksa Wikidata logosu, o da yoksa Türkçe/İspanyolca/İtalyanca/Almanca/Fransızca/Portekizce/Hollandaca Wikipedia görseli.
 - Sonuçlar tarayıcıda 6 saat saklanır, aynı eşleşme ikinci kez anında açılır.
 
 ## Yerelde çalıştırma

@@ -274,11 +274,11 @@ const LS = {
   get(k){ try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
   set(k,v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
 };
-const logos = LS.get('logos_v1') || {};   // takım id -> logo url
+const logos = LS.get('logos_v2') || {};   // takım id -> logo url
 const names = {};                          // takım id -> kısa isim
 POPULAR.forEach(t => names[t.id] = t.name);
 
-const state = { a:null, b:null, slot:'a', mode:'team', players:[], key:null, onlyNow:false, filter:'' };
+const state = { a:null, b:null, slot:'a', mode:'team', players:[], key:null, onlyNow:false, filter:'', loading:false, verifying:false };
 const pending = {};
 
 const $ = id => document.getElementById(id);
@@ -299,23 +299,39 @@ function shortName(l){
 }
 
 /* =========================================================
-   "ŞU AN BU TAKIMDA MI?" — Wikidata'da bitiş tarihi unutulmuş
-   kayıtlar çok. Bitişi olmayan bir dönemi ancak şu şartlarla
-   "şu an" sayıyoruz:
-   - oyuncu hayatta,
-   - bu dönemden SONRA başka kulübe geçmemiş,
-   - 40 yaşından büyük değil,
-   - dönem son 4 yılda başlamış YA DA oyuncu hâlâ 34 yaş altı.
+   "ŞU AN BU TAKIMDA" — Wikidata'da bitiş tarihi unutulmuş kayıt
+   çok olduğu için ona güvenmiyoruz. Oyuncunun İngilizce Wikipedia
+   sayfasındaki "current club" bilgisine bakıyoruz. Emin değilsek
+   (sayfa yok, bilgi yok, teknik direktör, emekli) "şu an" yazmıyoruz.
    ========================================================= */
-function isNow(sp, m = {}){
-  if (!sp[0] || sp[1]) return false;
-  if (m.dead) return false;
-  if (m.latest && m.latest > sp[0]) return false;
-  const age = m.born ? NOW - m.born : null;
-  if (age !== null && age > 40) return false;
-  return sp[0] >= NOW - 4 || (age !== null && age <= 34);
+const years = (sp, cur) => !sp[0] ? '?' : sp[0] === sp[1] ? `${sp[0]}` : `${sp[0]}–${sp[1] || (cur ? 'şimdi' : '?')}`;
+// "Galatasaray S.K. (football)" -> "galatasaray", "Manchester United F.C." -> "manchester united"
+const core = s => fold(s).replace(/\(.*?\)/g, ' ')
+  .replace(/\b(f\.?c|c\.?f|s\.?k|j\.?k|a\.?f\.?c|s\.?s\.?c|a\.?s|s\.?l|fk|sc)\b\.?/g, ' ').replace(/[^a-z0-9]+/g, ' ').trim();
+const sameClub = (cands, title) => !!title && cands.some(c => core(c) && core(c) === core(title));
+
+function currentClub(wikitext){
+  const m = wikitext.match(/\|\s*current_?club\s*=([^\n]*)/i);
+  if (!m) return null;
+  const raw = m[1].replace(/<ref[^>]*\/>/g, '').replace(/<ref[^>]*>.*?<\/ref>/g, '').replace(/<!--.*?-->/g, '').trim();
+  if (!raw || /coach|manager|assistant|director|retired|free agent|unattached|without|president|chairman|scout/i.test(raw)) return null;
+  const link = raw.match(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/);
+  if (link) return [link[1], link[2] || link[1]];
+  const plain = raw.replace(/\{\{[^}]*\}\}/g, '').replace(/[\[\]']/g, '').trim();
+  return plain ? [plain] : null;
 }
-const years = (sp, m) => !sp[0] ? '?' : sp[0] === sp[1] ? `${sp[0]}` : `${sp[0]}–${sp[1] || (isNow(sp, m) ? 'şimdi' : '?')}`;
+async function wikiCurrentClub(title){
+  const d = await getJSON(WIKI + '?' + new URLSearchParams({ action:'parse', format:'json', origin:'*', prop:'wikitext', section:'0', redirects:'1', page:title }), null, 8000);
+  return currentClub(d.parse?.wikitext?.['*'] || '');
+}
+// Aynı anda en fazla n istek
+async function pool(items, n, fn){
+  const out = []; let i = 0;
+  await Promise.all(Array.from({ length: Math.min(n, items.length) }, async () => {
+    while (i < items.length) { const k = i++; try { out[k] = await fn(items[k]); } catch { out[k] = null; } }
+  }));
+  return out;
+}
 
 /* =========================================================
    İSTEKLER
@@ -331,92 +347,112 @@ async function getJSON(url, signal, ms = 9000){
   } finally { clearTimeout(t); }
 }
 const sparql = async (q, signal, ms) => (await getJSON(SPARQL + '?format=json&query=' + encodeURIComponent(q), signal, ms)).results.bindings;
-const searchApi = (text, signal) => getJSON(`${API}?action=wbsearchentities&format=json&origin=*&language=tr&uselang=tr&type=item&limit=15&search=${encodeURIComponent(text)}`, signal, 6000);
-const enTitle = v => `OPTIONAL { ?a schema:about ${v}; schema:isPartOf <https://en.wikipedia.org/>; schema:name ?title }`;
+const ids2values = ids => ids.map(i => 'wd:' + i).join(' ');
+const LABELS = v => `OPTIONAL { ${v} rdfs:label ?tr FILTER(LANG(?tr) = "tr") } OPTIONAL { ${v} rdfs:label ?mul FILTER(LANG(?mul) = "mul") }
+  OPTIONAL { ${v} rdfs:label ?en FILTER(LANG(?en) = "en") }
+  OPTIONAL { ${v} schema:description ?dtr FILTER(LANG(?dtr) = "tr") } OPTIONAL { ${v} schema:description ?den FILTER(LANG(?den) = "en") }`;
+
+// Arama: hem "baştan eşleşen" arama hem de tam metin araması. Böylece "osimhen" yazınca
+// "Victor Osimhen" da bulunur (eski arama sadece ismin başından eşleştiriyordu).
+async function findIds(text, filter, signal){
+  const prefix = getJSON(`${API}?action=wbsearchentities&format=json&origin=*&language=tr&uselang=tr&type=item&limit=12&search=${encodeURIComponent(text)}`, signal, 6000)
+    .then(d => (d.search || []).map(i => i.id)).catch(() => []);
+  const full = getJSON(`${API}?` + new URLSearchParams({ action:'query', list:'search', format:'json', origin:'*', srlimit:'12', srsearch:`${text} ${filter}` }), signal, 6000)
+    .then(d => (d.query?.search || []).map(x => x.title)).catch(() => []);
+  const [a, b] = await Promise.all([full, prefix]);
+  return [...new Set([...a, ...b])].filter(id => /^Q\d+$/.test(id)).slice(0, 24);
+}
+
+const WIKIS = ['en','tr','es','it','de','fr','pt','nl'];   // logo aranacak Wikipedia dilleri
 
 async function searchTeams(text, signal){
-  const items = (await searchApi(text, signal)).search || [];
-  if (!items.length) return [];
-  const rows = await sparql(`SELECT ?t ?title ?logo WHERE {
-      VALUES ?t { ${items.map(i => 'wd:' + i.id).join(' ')} }
-      ?t wdt:P31 ?c . VALUES ?c { ${CLASSES} } ${enTitle('?t')} OPTIONAL { ?t wdt:P154 ?logo } }`, signal);
-  const info = {};
-  rows.forEach(r => { info[qid(r.t.value)] ??= { title: r.title?.value, logo: r.logo?.value }; });
-  const teams = items.filter(i => info[i.id]).map(i => ({ id:i.id, name:shortName(i.label), desc:i.description || '' }));
+  const ids = await findIds(text, 'haswbstatement:P31=Q476028', signal);
+  if (!ids.length) return [];
+  const rows = await sparql(`SELECT ?t ?links ?tr ?mul ?en ?dtr ?den WHERE {
+      VALUES ?t { ${ids2values(ids)} } ?t wdt:P31 ?c . VALUES ?c { ${CLASSES} } ?t wikibase:sitelinks ?links .
+      ${LABELS('?t')} }`, signal);
+  const meta = {};
+  rows.forEach(r => { meta[qid(r.t.value)] ??= { name: label(r), desc: (r.dtr || r.den)?.value || '', links: +r.links.value }; });
+  const teams = Object.entries(meta).filter(([, m]) => m.name)
+    .map(([id, m]) => ({ id, name: shortName(m.name), desc: m.desc, links: m.links }))
+    .sort((x, y) => y.links - x.links).slice(0, 8);
   teams.forEach(t => names[t.id] ??= t.name);
-  resolveLogos(info);
+  ensureLogos(teams.map(t => t.id));
   return teams;
 }
 
 async function searchPlayers(text, signal){
-  const items = (await searchApi(text, signal)).search || [];
-  if (!items.length) return [];
-  const rows = await sparql(`SELECT ?p ?img ?links WHERE {
-      VALUES ?p { ${items.map(i => 'wd:' + i.id).join(' ')} }
-      ?p wdt:P106 ${FOOTBALLER} ; wikibase:sitelinks ?links . OPTIONAL { ?p wdt:P18 ?img } }`, signal);
-  const info = {};
-  rows.forEach(r => { info[qid(r.p.value)] ??= { img: r.img?.value || null, links: +r.links.value }; });
-  return items.filter(i => info[i.id])
-    .map(i => ({ id:i.id, name:i.label, desc:i.description || '', ...info[i.id] }))
-    .sort((x, y) => y.links - x.links).slice(0, 10);
+  const ids = await findIds(text, `haswbstatement:P106=${FOOTBALLER.slice(3)}`, signal);
+  if (!ids.length) return [];
+  const rows = await sparql(`SELECT ?p ?links ?img ?tr ?mul ?en ?dtr ?den WHERE {
+      VALUES ?p { ${ids2values(ids)} } ?p wdt:P106 ${FOOTBALLER} ; wikibase:sitelinks ?links .
+      OPTIONAL { ?p wdt:P18 ?img } ${LABELS('?p')} }`, signal);
+  const out = {};
+  rows.forEach(r => { out[qid(r.p.value)] ??= { id: qid(r.p.value), name: label(r), desc: (r.dtr || r.den)?.value || '', img: r.img?.value || null, links: +r.links.value }; });
+  return Object.values(out).filter(p => p.name).sort((x, y) => y.links - x.links).slice(0, 10);
 }
 
-// Logo: önce Wikipedia sayfasındaki güncel arma, yoksa Wikidata logosu
-async function resolveLogos(info){
-  const ids = Object.keys(info).filter(id => !(id in logos));
-  if (!ids.length) return paintLogos();
-  const titles = [...new Set(ids.map(id => info[id].title).filter(Boolean))];
-  const thumbs = {};
-  if (titles.length) {
-    try {
-      for (let i = 0; i < titles.length; i += 50) {
-        const part = titles.slice(i, i + 50);
-        const p = new URLSearchParams({ action:'query', format:'json', origin:'*', prop:'pageimages', piprop:'thumbnail',
-          pithumbsize:'160', pilicense:'any', pilimit:'50', redirects:'1', titles:part.join('|') });
-        const d = await getJSON(WIKI + '?' + p);
-        const jump = {}; [...(d.query.normalized || []), ...(d.query.redirects || [])].forEach(n => jump[n.from] = n.to);
-        const pages = {}; Object.values(d.query.pages || {}).forEach(pg => { if (pg.thumbnail) pages[pg.title] = pg.thumbnail.source; });
-        part.forEach(t => { let k = t; for (let j = 0; j < 3 && jump[k]; j++) k = jump[k]; if (pages[k]) thumbs[t] = pages[k]; });
-      }
-    } catch { return; }
+// Logo sırası: İngilizce Wikipedia arması → Wikidata logosu → diğer dillerdeki Wikipedia görselleri
+async function pageImages(wiki, titles){
+  const out = {};
+  for (let i = 0; i < titles.length; i += 50) {
+    const part = titles.slice(i, i + 50);
+    const p = new URLSearchParams({ action:'query', format:'json', origin:'*', prop:'pageimages', piprop:'thumbnail',
+      pithumbsize:'160', pilicense:'any', pilimit:'50', redirects:'1', titles:part.join('|') });
+    const d = await getJSON(`https://${wiki}.wikipedia.org/w/api.php?` + p);
+    const jump = {}; [...(d.query?.normalized || []), ...(d.query?.redirects || [])].forEach(n => jump[n.from] = n.to);
+    const pages = {}; Object.values(d.query?.pages || {}).forEach(pg => { if (pg.thumbnail) pages[pg.title] = pg.thumbnail.source; });
+    part.forEach(t => { let k = t; for (let j = 0; j < 3 && jump[k]; j++) k = jump[k]; if (pages[k]) out[t] = pages[k]; });
   }
-  ids.forEach(id => { const i = info[id]; logos[id] = thumbs[i.title] || (i.logo ? photo(i.logo, 160) : ''); });
-  LS.set('logos_v1', logos);
-  paintLogos();
+  return out;
 }
+const logoBusy = new Set();
 async function ensureLogos(ids){
-  const need = [...new Set(ids)].filter(id => !(id in logos));
+  const need = [...new Set(ids)].filter(id => id && !(id in logos) && !logoBusy.has(id));
   if (!need.length) return paintLogos();
+  need.forEach(id => logoBusy.add(id));
+  let failed = false;
   try {
-    const rows = await sparql(`SELECT ?t ?title ?logo WHERE {
-        VALUES ?t { ${need.map(i => 'wd:' + i).join(' ')} } ${enTitle('?t')} OPTIONAL { ?t wdt:P154 ?logo } }`);
-    const info = {}; need.forEach(id => info[id] = {});
-    rows.forEach(r => { const id = qid(r.t.value); info[id] = { title: info[id].title || r.title?.value, logo: info[id].logo || r.logo?.value }; });
-    await resolveLogos(info);
-  } catch {}
-}
-
-// Oyuncuların doğum yılı, ölüm bilgisi ve (milli takımlar hariç) en son kulübe katıldığı yıl
-async function playerMeta(ids){
-  if (!ids.length) return {};
-  // UNION: her bilgi ayrı satır gelir, hesap tarayıcıda yapılır (~0.2 sn)
-  const rows = await sparql(`SELECT ?p ?s ?b ?d WHERE {
-      VALUES ?p { ${ids.map(i => 'wd:' + i).join(' ')} }
-      { ?p p:P54 ?st . ?st pq:P580 ?s ; ps:P54 ?t . ?t wdt:P31 wd:Q476028 . }
-      UNION { ?p wdt:P569 ?b } UNION { ?p wdt:P570 ?d } }`, null, 12000);
-  const m = {};
-  rows.forEach(r => {
-    const x = m[qid(r.p.value)] ??= { latest: null, born: null, dead: false };
-    if (r.s) x.latest = Math.max(x.latest || 0, yr(r.s.value) || 0) || null;
-    if (r.b) x.born ??= yr(r.b.value);
-    if (r.d) x.dead = true;
-  });
-  return m;
+    // Her takımın farklı dillerdeki Wikipedia sayfa adları
+    const titles = {};
+    for (let i = 0; i < need.length; i += 50) {
+      const d = await getJSON(`${API}?` + new URLSearchParams({ action:'wbgetentities', format:'json', origin:'*', props:'sitelinks',
+        sitefilter: WIKIS.map(w => w + 'wiki').join('|'), ids: need.slice(i, i + 50).join('|') }), null, 8000);
+      Object.values(d.entities || {}).forEach(e => {
+        titles[e.id] = {};
+        Object.values(e.sitelinks || {}).forEach(sl => titles[e.id][sl.site.replace('wiki', '')] = sl.title);
+      });
+    }
+    for (const src of ['en', 'P154', ...WIKIS.slice(1)]) {
+      const left = need.filter(id => !logos[id]);
+      if (!left.length) break;
+      if (src === 'P154') {   // Wikidata'daki resmi logo dosyası
+        await pool(left, 6, async id => {
+          const d = await getJSON(`${API}?action=wbgetclaims&format=json&origin=*&property=P154&entity=${id}`, null, 6000);
+          const f = d.claims?.P154?.[0]?.mainsnak?.datavalue?.value;
+          if (f) logos[id] = `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(f)}?width=160`;
+        });
+      } else {
+        const want = [...new Set(left.map(id => titles[id]?.[src]).filter(Boolean))];
+        if (!want.length) continue;
+        try {
+          const th = await pageImages(src, want);
+          left.forEach(id => { const t = titles[id]?.[src]; if (t && th[t]) logos[id] = th[t]; });
+        } catch { failed = true; }
+      }
+      paintLogos();
+    }
+  } catch { failed = true; }
+  finally {
+    need.forEach(id => { logoBusy.delete(id); if (!logos[id]) { if (failed) delete logos[id]; else logos[id] = ''; } });
+    LS.set('logos_v2', logos);
+    paintLogos();
+  }
 }
 
 // İki takımda da oynamış oyuncular
 async function fetchPair(a, b){
-  const key = 'pair_v2:' + pairKey(a, b);
+  const key = 'pair_v3:' + pairKey(a, b);
   const cached = LS.get(key);
   if (cached && Date.now() - cached.t < 6 * 3600e3) return cached.d;
 
@@ -431,55 +467,62 @@ async function fetchPair(a, b){
   const map = new Map();
   for (const r of rows) {
     const id = qid(r.p.value);
-    if (!map.has(id)) map.set(id, { id, name: label(r) || id, links: +r.links.value, img: r.img?.value || null, s: { [a]:[], [b]:[] } });
+    if (!map.has(id)) map.set(id, { id, name: label(r) || id, links: +r.links.value, img: r.img?.value || null, s: { [a]:[], [b]:[] }, now: null });
     const sp = [yr(r.start?.value), yr(r.end?.value)];
     const list = map.get(id).s[qid(r.team.value)];
     if (!list.some(x => x[0] === sp[0] && x[1] === sp[1])) list.push(sp);
   }
   const d = [...map.values()];
   d.forEach(p => Object.values(p.s).forEach(l => l.sort((x, y) => (x[0] || 0) - (y[0] || 0))));
-
-  d.forEach(p => p.m = {});
-  if (d.length) LS.set(key, { t: Date.now(), d, meta: false });   // boş sonucu saklama (geçici hata olabilir)
+  if (d.length) LS.set(key, { t: Date.now(), d, verified: false });   // boş sonucu saklama (geçici hata olabilir)
   return d;
 }
 
-// Bitişi olmayan dönemi olanlar için ek bilgi (yanlış "şu an" etiketlerini ayıklamak için).
-// Sonuçları bekletmez: arka planda gelir, gelince liste güncellenir.
-async function enrichPair(a, b, d){
-  const key = 'pair_v2:' + pairKey(a, b);
-  if (LS.get(key)?.meta) return false;
-  const open = d.filter(p => Object.values(p.s).some(l => l.some(sp => sp[0] && !sp[1]))).map(p => p.id);
-  if (open.length) {
-    const meta = await playerMeta(open);
-    d.forEach(p => p.m = meta[p.id] || p.m || {});
+// "Şu an" doğrulaması: sonuçları bekletmez, arka planda çalışır
+async function verifyPair(a, b, d){
+  const key = 'pair_v3:' + pairKey(a, b);
+  if (LS.get(key)?.verified) return false;
+  // Aday: bu takımlarda bitişi yazılmamış ya da son 2 yılda bitmiş dönemi olanlar
+  const cand = d.filter(p => Object.values(p.s).some(l => l.some(sp => (sp[0] && !sp[1]) || (sp[1] && sp[1] >= NOW - 1))));
+  d.forEach(p => p.now = null);
+  if (cand.length) {
+    // İngilizce Wikipedia sayfa adları (wbgetentities: SPARQL'den hızlı ve istikrarlı)
+    const title = {}, all = [a, b, ...cand.map(p => p.id)];
+    for (let i = 0; i < all.length; i += 50) {
+      const d2 = await getJSON(`${API}?` + new URLSearchParams({ action:'wbgetentities', format:'json', origin:'*',
+        props:'sitelinks', sitefilter:'enwiki', ids: all.slice(i, i + 50).join('|') }), null, 8000);
+      Object.values(d2.entities || {}).forEach(e => { if (e.sitelinks?.enwiki) title[e.id] = e.sitelinks.enwiki.title; });
+    }
+    const clubs = await pool(cand, 6, p => title[p.id] ? wikiCurrentClub(title[p.id]) : null);
+    cand.forEach((p, i) => { const c = clubs[i]; if (c) p.now = sameClub(c, title[a]) ? a : sameClub(c, title[b]) ? b : null; });
   }
-  if (d.length) LS.set(key, { t: Date.now(), d, meta: true });
-  return open.length > 0;
+  LS.set(key, { t: Date.now(), d, verified: true });
+  return true;
 }
 
 // Bir oyuncunun bütün takımları
 async function fetchCareer(id){
-  const key = 'career_v1:' + id;
+  const key = 'career_v2:' + id;
   const cached = LS.get(key);
   if (cached && Date.now() - cached.t < 6 * 3600e3) return cached.d;
-  const rows = await sparql(`SELECT ?team ?start ?end ?tr ?mul ?en ?nat ?born ?dead WHERE {
+  const rows = await sparql(`SELECT ?team ?start ?end ?tr ?mul ?en ?nat ?ttitle ?ptitle WHERE {
       wd:${id} p:P54 ?st . ?st ps:P54 ?team .
       OPTIONAL { ?st pq:P580 ?start } OPTIONAL { ?st pq:P582 ?end }
       OPTIONAL { ?team rdfs:label ?tr  FILTER(LANG(?tr)  = "tr")  }
       OPTIONAL { ?team rdfs:label ?mul FILTER(LANG(?mul) = "mul") }
       OPTIONAL { ?team rdfs:label ?en  FILTER(LANG(?en)  = "en")  }
-      BIND(EXISTS { ?team wdt:P31 wd:Q6979593 } AS ?nat)
-      OPTIONAL { wd:${id} wdt:P569 ?born } OPTIONAL { wd:${id} wdt:P570 ?dead } }`, null, 15000);
-  const map = new Map(); let born = null, dead = false;
+      OPTIONAL { ?ts schema:about ?team; schema:isPartOf <https://en.wikipedia.org/>; schema:name ?ttitle }
+      OPTIONAL { ?ps schema:about wd:${id}; schema:isPartOf <https://en.wikipedia.org/>; schema:name ?ptitle }
+      BIND(EXISTS { ?team wdt:P31 wd:Q6979593 } AS ?nat) }`, null, 15000);
+  const map = new Map(); let ptitle = null;
   for (const r of rows) {
-    born ??= yr(r.born?.value); dead ||= !!r.dead;
+    ptitle ??= r.ptitle?.value || null;
     const tid = qid(r.team.value);
     // Milli takım mı? (genç milli takımlar da: "Spain national under-21 ...")
     const nat = r.nat?.value === 'true' || /\bnational\b/i.test(r.en?.value || '') || /mill[iî]/i.test(r.tr?.value || '');
     let name = shortName(label(r) || tid);
     if (nat) name = name.replace(/\s*mill[iî]\s+futbol\s+takımı/i, '').replace(/\s+national\s+(association\s+)?football\s+team/i, '');
-    if (!map.has(tid)) map.set(tid, { id: tid, name, nat, s: [] });
+    if (!map.has(tid)) map.set(tid, { id: tid, name, nat, title: r.ttitle?.value || null, s: [] });
     const sp = [yr(r.start?.value), yr(r.end?.value)];
     const t = map.get(tid);
     if (!t.s.some(x => x[0] === sp[0] && x[1] === sp[1])) t.s.push(sp);
@@ -487,9 +530,14 @@ async function fetchCareer(id){
   const teams = [...map.values()];
   teams.forEach(t => t.s.sort((x, y) => (x[0] || 9999) - (y[0] || 9999)));
   teams.sort((x, y) => (x.s[0][0] || 9999) - (y.s[0][0] || 9999));
-  const latest = Math.max(0, ...teams.filter(t => !t.nat).flatMap(t => t.s.map(sp => sp[0] || 0))) || null;
-  const d = { teams, m: { born, dead, latest } };
-  LS.set(key, { t: Date.now(), d });
+  // Şu anki kulüp: Wikipedia'daki bilgiyle doğrula
+  let cur = null, sure = true;
+  if (ptitle) {
+    try { const c = await wikiCurrentClub(ptitle); if (c) cur = teams.find(t => !t.nat && sameClub(c, t.title))?.id || null; }
+    catch { sure = false; }
+  }
+  const d = { teams, cur };
+  if (sure) LS.set(key, { t: Date.now(), d });
   return d;
 }
 
@@ -504,9 +552,9 @@ function prefetch(){
 // Sıralama: ünlülük + güncellik birlikte
 function score(players, a, b){
   return players.map(p => {
+    const cur = p.now === a || p.now === b ? p.now : null;
     const all = [...p.s[a], ...p.s[b]];
-    const cur = [a, b].find(t => p.s[t].some(sp => isNow(sp, p.m))) || null;
-    const last = Math.max(0, ...all.map(sp => sp[1] || (isNow(sp, p.m) ? NOW : sp[0]) || 0));
+    const last = Math.max(0, ...all.map(sp => sp[1] || (!sp[1] && cur ? NOW : sp[0]) || 0));
     const ago = last ? Math.max(0, NOW - last) : 30;
     return { ...p, cur, smart: p.links * (0.35 + 0.65 * Math.exp(-ago / 12)) * (cur ? 1.3 : 1) };
   }).sort((x, y) => y.smart - x.smart).map((p, i) => ({ ...p, rank: i + 1 }));
@@ -611,17 +659,19 @@ $('q').addEventListener('input', () => {
   if (q.length < 2) { $('searchBox').classList.remove('searching'); return renderSheetHome(); }
   $('searchBox').classList.add('searching');
   searchTimer = setTimeout(async () => {
-    searchCtrl = new AbortController();
+    const ctrl = searchCtrl = new AbortController();
     try {
       if (state.mode === 'team') {
-        const list = await searchTeams(q, searchCtrl.signal);
+        const list = await searchTeams(q, ctrl.signal);
+        if (ctrl.signal.aborted) return;   // bu arada yeni harf yazıldıysa eski sonucu gösterme
         $('sheetBody').innerHTML = list.length
           ? `<div class="rows">${list.map(t => `<button class="row" data-id="${t.id}" data-name="${esc(t.name)}">
               ${crest(t.id, 'sm')}<div><b>${esc(t.name)}</b><small>${esc(t.desc)}</small></div></button>`).join('')}</div>`
           : `<div class="empty-msg">Futbol takımı bulunamadı.<br>Farklı yazmayı dene.</div>`;
         paintLogos($('sheetBody'));
       } else {
-        const list = await searchPlayers(q, searchCtrl.signal);
+        const list = await searchPlayers(q, ctrl.signal);
+        if (ctrl.signal.aborted) return;
         list.forEach(p => lastPlayers[p.id] = p);
         $('sheetBody').innerHTML = list.length ? `<div class="rows">${list.map(playerRow).join('')}</div>`
           : `<div class="empty-msg">Futbolcu bulunamadı.<br>Soyadıyla aramayı dene.</div>`;
@@ -684,7 +734,7 @@ $('go').addEventListener('click', start);
 
 /* ---------- Sonuçlar ---------- */
 async function showResults(a, b, req){
-  state.key = pairKey(a.id, b.id); state.players = []; state.filter = ''; state.onlyNow = false; state.loading = true;
+  state.key = pairKey(a.id, b.id); state.players = []; state.filter = ''; state.onlyNow = false; state.loading = true; state.verifying = true;
   $('filter').value = ''; $('onlyNow').classList.remove('on');
   $('resMatch').innerHTML = `<div class="t">${crest(a.id,'hd')}<span>${esc(a.name)}</span></div>
     <div class="v">VS</div><div class="t"><span>${esc(b.name)}</span>${crest(b.id,'hd')}</div>`;
@@ -698,11 +748,12 @@ async function showResults(a, b, req){
     state.players = score(data, a.id, b.id);
     state.loading = false;
     renderList(true);
-    enrichPair(a.id, b.id, data).then(changed => {
-      if (!changed || state.key !== pairKey(a.id, b.id)) return;
+    verifyPair(a.id, b.id, data).catch(() => {}).finally(() => {
+      if (state.key !== pairKey(a.id, b.id)) return;
+      state.verifying = false;
       state.players = score(data, a.id, b.id);
       renderList(false);
-    }).catch(() => {});
+    });
   } catch (e) {
     if (state.key !== pairKey(a.id, b.id)) return;
     $('resList').innerHTML = `<div class="none"><b>Bağlantı sorunu</b><span>${esc(e.message)}</span><br>
@@ -722,7 +773,12 @@ function renderList(animate){
   $('tools').style.display = '';
   const q = fold(state.filter.trim());
   const shown = P.filter(p => (!state.onlyNow || p.cur) && (!q || fold(p.name).includes(q)));
-  $('resCount').innerHTML = `<em>${shown.length}</em> ortak oyuncu`;
+  $('resCount').innerHTML = `<em>${shown.length}</em> ${state.onlyNow ? 'güncel ' : ''}ortak oyuncu`;
+  if (state.onlyNow && state.verifying) {
+    $('resCount').innerHTML = `<em>…</em> güncel ortak oyuncu`;
+    $('resList').innerHTML = '<div class="empty-msg">Güncel oyuncular kontrol ediliyor…</div>';
+    return;
+  }
   $('resList').classList.toggle('calm', !animate);
   if (!shown.length) {
     $('resList').innerHTML = `<div class="empty-msg">${q ? 'Bu isimde ortak oyuncu yok.' : 'Şu an bu takımlarda oynayan ortak oyuncu yok.'}</div>`;
@@ -730,7 +786,7 @@ function renderList(animate){
   }
   const max = Math.max(...P.map(p => p.links));
   $('resList').innerHTML = shown.map((p, i) => {
-    const sp = t => `<span class="sp">${crest(t.id,'xs')}${p.s[t.id].map(x => years(x, p.m)).join(', ')}</span>`;
+    const sp = t => `<span class="sp">${crest(t.id,'xs')}${p.s[t.id].map(x => years(x, p.cur === t.id)).join(', ')}</span>`;
     return `<button class="pl ${p.rank <= 3 ? 'r' + p.rank : ''}" data-pid="${p.id}" style="animation-delay:${Math.min(i, 12) * 30}ms">
       <div class="rk">${p.rank}</div>${face(p)}
       <div>
@@ -767,12 +823,12 @@ async function showCareer(p, remember){
   body.innerHTML = `<div class="hero">${face(p)}<div><h2>${esc(p.name)}</h2>${p.desc ? `<p>${esc(p.desc)}</p>` : ''}</div></div>
     <div class="clubs">${'<div class="skel"></div>'.repeat(4)}</div>`;
   try {
-    const { teams, m } = await fetchCareer(p.id);
+    const { teams, cur: curTeam } = await fetchCareer(p.id);
     teams.forEach(t => names[t.id] ??= t.name);
     const row = (t, i) => {
-      const cur = t.s.some(sp => isNow(sp, m));
+      const cur = t.id === curTeam;
       return `<div class="club ${cur ? 'cur' : ''}" style="animation-delay:${Math.min(i, 15) * 25}ms">${crest(t.id, 'md')}
-        <div><b>${esc(t.name)}${cur ? '<span class="now">şu an</span>' : ''}</b><small>${t.s.map(sp => years(sp, m)).join(' · ')}</small></div></div>`;
+        <div><b>${esc(t.name)}${cur ? '<span class="now">şu an</span>' : ''}</b><small>${t.s.map(sp => years(sp, cur)).join(' · ')}</small></div></div>`;
     };
     const clubs = teams.filter(t => !t.nat), nat = teams.filter(t => t.nat);
     body.querySelector('.clubs').innerHTML = !teams.length ? '<div class="empty-msg">Bu oyuncunun takım kaydı yok.</div>'
