@@ -1,0 +1,616 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#07110c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="3·2·1">
+<meta name="description" content="İki futbol takımı seç, iki takımda da oynamış oyuncuları anında gör. Kafede oynanan 3-2-1 oyunu için.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>3·2·1 Ortak Oyuncu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://query.wikidata.org">
+<link rel="preconnect" href="https://en.wikipedia.org">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,800;1,800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#07110c; --bg2:#0c1a12; --card:#10211869; --card-solid:#112219; --line:rgba(255,255,255,.08);
+    --text:#f1f6f2; --muted:#8ea596; --lime:#d4ff3a; --lime-ink:#0b1606; --gold:#ffcf4a;
+    --silver:#cfd8d3; --bronze:#e0995b; --red:#ff6b5b; --crest-bg:#f3f6f1;
+    --display:"Barlow Condensed",system-ui,sans-serif;
+    --safe-b:env(safe-area-inset-bottom,0px); --safe-t:env(safe-area-inset-top,0px);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--text);overflow:hidden;
+    font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0}
+  .app{position:relative;max-width:480px;height:100dvh;margin:0 auto;overflow:hidden;
+    background:
+      repeating-linear-gradient(to bottom, rgba(255,255,255,.018) 0 64px, transparent 64px 128px),
+      radial-gradient(120% 70% at 50% 0%, #133222 0%, var(--bg) 60%);}
+
+  /* ---------- Ana ekran ---------- */
+  .home{height:100%;display:flex;flex-direction:column;padding:calc(18px + var(--safe-t)) 18px calc(18px + var(--safe-b))}
+  .brand{display:flex;align-items:baseline;justify-content:space-between}
+  .logo{font:italic 800 34px/1 var(--display);letter-spacing:.02em;color:var(--lime)}
+  .logo span{color:var(--text)}
+  .tag{font-size:13px;color:var(--muted)}
+  .match{flex:1;display:grid;grid-template-columns:1fr 64px 1fr;align-items:center;gap:4px;position:relative}
+  /* saha orta çizgisi ve orta yuvarlak */
+  .match::before{content:"";position:absolute;left:50%;top:50%;width:200px;height:200px;margin:-100px 0 0 -100px;
+    border:2px solid rgba(255,255,255,.05);border-radius:50%;pointer-events:none}
+  .match::after{content:"";position:absolute;left:-18px;right:-18px;top:50%;height:2px;margin-top:-1px;
+    background:rgba(255,255,255,.05);pointer-events:none}
+  .slot,.mid{position:relative;z-index:1}
+  .slot{display:flex;flex-direction:column;align-items:center;gap:12px;min-width:0}
+  .slot .crest{width:min(30vw,120px);height:min(30vw,120px);box-shadow:0 10px 30px rgba(0,0,0,.45),0 0 0 4px rgba(255,255,255,.06)}
+  .slot.empty .crest{background:transparent;border:2px dashed rgba(212,255,58,.55);box-shadow:none;color:var(--lime);font-size:40px;font-weight:300}
+  .slot .nm{font:800 24px/1.05 var(--display);letter-spacing:.01em;text-align:center;
+    max-width:100%;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .slot.empty .nm{color:var(--muted);font-weight:600;font-size:18px}
+  .slot:active .crest{transform:scale(.96)}
+  .mid{display:flex;flex-direction:column;align-items:center;gap:14px}
+  .vs{font:italic 800 30px/1 var(--display);color:var(--lime);text-shadow:0 0 24px rgba(212,255,58,.35)}
+  .swap{width:40px;height:40px;border-radius:50%;background:var(--card-solid);border:1px solid var(--line);font-size:16px;color:var(--muted)}
+  .hint{text-align:center;color:var(--muted);font-size:14px;margin:0 12px 18px;min-height:20px}
+  .hint b{color:var(--text)}
+  .cta{display:flex;flex-direction:column;gap:10px}
+  .go{height:66px;border-radius:20px;background:var(--lime);color:var(--lime-ink);
+    font:italic 800 30px/1 var(--display);letter-spacing:.06em;box-shadow:0 10px 30px rgba(212,255,58,.25);transition:transform .12s, opacity .2s}
+  .go:active{transform:scale(.98)}
+  .go:disabled{opacity:.25;box-shadow:none}
+  .ghost{height:50px;border-radius:16px;border:1px solid var(--line);background:rgba(255,255,255,.03);font-weight:600;color:var(--text)}
+  .ghost:active{background:rgba(255,255,255,.08)}
+
+  /* ---------- Arma ---------- */
+  .crest{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:var(--crest-bg);
+    color:#163021;font:800 18px/1 var(--display);overflow:hidden;flex:none;transition:transform .15s;position:relative}
+  .crest img{width:76%;height:76%;object-fit:contain}
+  .crest.sm{width:44px;height:44px;font-size:15px}
+  .crest.md{width:56px;height:56px}
+  .crest.xs{width:20px;height:20px;font-size:9px}
+  .crest.hd{width:40px;height:40px;font-size:14px}
+
+  /* ---------- Takım seçme paneli ---------- */
+  .sheet,.results{position:absolute;inset:0;background:var(--bg);display:flex;flex-direction:column;z-index:10;
+    transition:transform .32s cubic-bezier(.2,.8,.2,1);will-change:transform}
+  .sheet{transform:translateY(102%)}
+  .sheet.open{transform:none}
+  .sheet-top{padding:calc(14px + var(--safe-t)) 14px 10px;display:flex;flex-direction:column;gap:12px;border-bottom:1px solid var(--line)}
+  .sheet-title{display:flex;align-items:center;gap:10px;font:800 22px/1 var(--display);text-transform:uppercase;letter-spacing:.03em}
+  .iconbtn{width:40px;height:40px;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;
+    background:rgba(255,255,255,.05);font-size:20px;flex:none}
+  .search{display:flex;align-items:center;gap:10px;background:var(--card-solid);border:1.5px solid var(--line);border-radius:16px;padding:0 14px;height:52px}
+  .search:focus-within{border-color:var(--lime)}
+  .search input{flex:1;min-width:0;border:0;background:none;color:var(--text);font-size:17px;outline:none;height:100%}
+  .search input::placeholder{color:var(--muted)}
+  .spin{width:18px;height:18px;border-radius:50%;border:2px solid rgba(255,255,255,.15);border-top-color:var(--lime);animation:spin .7s linear infinite;display:none}
+  .searching .spin{display:block}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .sheet-body{flex:1;overflow-y:auto;padding:14px 14px calc(24px + var(--safe-b));-webkit-overflow-scrolling:touch}
+  .label{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:6px 2px 12px}
+  .recent{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:18px;scrollbar-width:none}
+  .recent::-webkit-scrollbar{display:none}
+  .chip{display:flex;align-items:center;gap:8px;padding:6px 14px 6px 6px;border-radius:99px;background:var(--card-solid);border:1px solid var(--line);white-space:nowrap;font-weight:600;font-size:14px}
+  .chip .crest{width:30px;height:30px;font-size:11px}
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px 8px}
+  .tile{display:flex;flex-direction:column;align-items:center;gap:7px;font-size:12px;font-weight:600;text-align:center;line-height:1.15}
+  .tile .crest{width:58px;height:58px}
+  .tile:active .crest,.chip:active,.row:active{transform:scale(.95)}
+  .rows{display:flex;flex-direction:column;gap:6px}
+  .row{display:flex;align-items:center;gap:12px;padding:10px;border-radius:14px;background:var(--card-solid);border:1px solid var(--line);text-align:left;transition:transform .12s}
+  .row b{display:block;font-weight:650}
+  .row small{display:block;color:var(--muted);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .row>div{min-width:0}
+  .empty-msg{color:var(--muted);text-align:center;padding:30px 10px}
+
+  /* ---------- Geri sayım ---------- */
+  .count{position:absolute;inset:0;z-index:20;display:none;align-items:center;justify-content:center;flex-direction:column;gap:8px;
+    background:rgba(7,17,12,.94);backdrop-filter:blur(6px)}
+  .count.on{display:flex}
+  .num{font:italic 800 min(60vw,280px)/1 var(--display);color:var(--lime);text-shadow:0 0 60px rgba(212,255,58,.35)}
+  .num.pop{animation:pop .75s cubic-bezier(.2,.9,.3,1.3)}
+  .num.word{font-size:min(22vw,110px)}
+  @keyframes pop{0%{transform:scale(.3);opacity:0}35%{transform:scale(1.08);opacity:1}100%{transform:scale(1);opacity:1}}
+  .count small{color:var(--muted)}
+
+  /* ---------- Sonuçlar ---------- */
+  .results{transform:translateX(102%)}
+  .results.open{transform:none}
+  .res-top{padding:calc(12px + var(--safe-t)) 14px 12px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line);
+    background:linear-gradient(to bottom,#11261a,var(--bg))}
+  .res-match{flex:1;display:flex;align-items:center;justify-content:center;gap:10px;min-width:0}
+  .res-match .t{display:flex;align-items:center;gap:8px;min-width:0;font:800 19px/1 var(--display)}
+  .res-match .t span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .res-match .v{font:italic 800 16px/1 var(--display);color:var(--lime)}
+  .res-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px 4px}
+  .res-count{font:800 20px/1 var(--display);text-transform:uppercase}
+  .res-count em{color:var(--lime);font-style:normal}
+  .seg{display:flex;background:var(--card-solid);border:1px solid var(--line);border-radius:12px;padding:3px}
+  .seg button{padding:7px 10px;border-radius:9px;font-size:13px;font-weight:600;color:var(--muted)}
+  .seg button.on{background:var(--lime);color:var(--lime-ink)}
+  .res-list{flex:1;overflow-y:auto;padding:10px 14px calc(100px + var(--safe-b));display:flex;flex-direction:column;gap:8px}
+  .pl{display:grid;grid-template-columns:26px 54px 1fr;gap:12px;align-items:center;padding:10px 12px;border-radius:18px;
+    background:var(--card-solid);border:1px solid var(--line);animation:rise .35s both}
+  @keyframes rise{from{opacity:0;transform:translateY(10px)}}
+  .rk{font:800 22px/1 var(--display);color:var(--muted);text-align:center}
+  .pl.r1{border-color:rgba(255,207,74,.45);background:linear-gradient(100deg,rgba(255,207,74,.12),var(--card-solid) 60%)}
+  .pl.r1 .rk{color:var(--gold)} .pl.r2 .rk{color:var(--silver)} .pl.r3 .rk{color:var(--bronze)}
+  .face{width:54px;height:54px;border-radius:50%;object-fit:cover;object-position:50% 20%;background:#1c3426;display:flex;align-items:center;
+    justify-content:center;font:800 22px/1 var(--display);color:var(--lime)}
+  .pn{font-weight:700;font-size:16px;line-height:1.2;color:var(--text);text-decoration:none}
+  .now{display:inline-block;margin-left:4px;font-size:11px;font-weight:800;
+    padding:3px 7px;border-radius:99px;background:var(--lime);color:var(--lime-ink);vertical-align:2px}
+  .sps{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:5px}
+  .sp{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .fame{height:3px;border-radius:2px;background:rgba(255,255,255,.08);margin-top:7px;overflow:hidden}
+  .fame i{display:block;height:100%;background:linear-gradient(90deg,#7fae22,var(--lime));border-radius:2px}
+  .state{padding:50px 20px;text-align:center;color:var(--muted)}
+  .state b{display:block;font:800 26px/1.1 var(--display);color:var(--text);text-transform:uppercase;margin-bottom:6px}
+  .state .ghost{margin-top:16px;padding:0 22px}
+  .res-cta{position:absolute;left:0;right:0;bottom:0;padding:14px 14px calc(14px + var(--safe-b));display:flex;gap:10px;
+    background:linear-gradient(to top,var(--bg) 60%,transparent)}
+  .res-cta .go{flex:1;height:56px;font-size:24px}
+  .res-cta .ghost{width:56px;height:56px;font-size:22px}
+  .skel{height:78px;border-radius:18px;background:linear-gradient(90deg,var(--card-solid),#18301f,var(--card-solid));background-size:200% 100%;animation:sh 1.2s infinite}
+  @keyframes sh{to{background-position:-200% 0}}
+
+  @media (min-width:520px){ .app{border-left:1px solid var(--line);border-right:1px solid var(--line)} }
+  @media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important} }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ANA EKRAN -->
+  <section class="home">
+    <div class="brand">
+      <div class="logo">3·2·1 <span>ORTAK</span></div>
+      <div class="tag">ilk söyleyen kazanır</div>
+    </div>
+
+    <div class="match">
+      <button class="slot empty" id="slotA" data-k="a"></button>
+      <div class="mid">
+        <div class="vs">VS</div>
+        <button class="swap" id="swap" aria-label="Takımları değiştir">⇄</button>
+      </div>
+      <button class="slot empty" id="slotB" data-k="b"></button>
+    </div>
+
+    <p class="hint" id="hint">İki takım seç, ortak oyuncuyu ilk söyleyen kazansın.</p>
+    <div class="cta">
+      <button class="go" id="go" disabled>3 · 2 · 1</button>
+      <button class="ghost" id="random">🎲 Rastgele eşleşme</button>
+    </div>
+  </section>
+
+  <!-- TAKIM SEÇ -->
+  <section class="sheet" id="sheet" aria-hidden="true">
+    <div class="sheet-top">
+      <div class="sheet-title">
+        <button class="iconbtn" id="sheetClose" aria-label="Kapat">✕</button>
+        <span id="sheetTitle">1. takımı seç</span>
+      </div>
+      <label class="search" id="searchBox">
+        <span style="color:var(--muted)">⌕</span>
+        <input id="q" type="search" placeholder="Takım ara… (ör. Ajax, Trabzonspor)" autocomplete="off" enterkeyhint="search">
+        <span class="spin"></span>
+      </label>
+    </div>
+    <div class="sheet-body" id="sheetBody"></div>
+  </section>
+
+  <!-- SONUÇLAR -->
+  <section class="results" id="results" aria-hidden="true">
+    <div class="res-top">
+      <button class="iconbtn" id="resBack" aria-label="Geri">←</button>
+      <div class="res-match" id="resMatch"></div>
+      <div style="width:40px"></div>
+    </div>
+    <div class="res-bar">
+      <div class="res-count" id="resCount"></div>
+      <div class="seg" id="seg">
+        <button data-k="smart" class="on">Akıllı</button>
+        <button data-k="fame">Ünlü</button>
+        <button data-k="recent">Yeni</button>
+      </div>
+    </div>
+    <div class="res-list" id="resList"></div>
+    <div class="res-cta">
+      <button class="ghost" id="resRandom" aria-label="Rastgele eşleşme">🎲</button>
+      <button class="go" id="again">YENİ TUR</button>
+    </div>
+  </section>
+
+  <!-- GERİ SAYIM -->
+  <div class="count" id="count"><div class="num" id="num">3</div><small>geçmek için dokun</small></div>
+</div>
+
+<script>
+/* =========================================================
+   AYARLAR VE VERİ
+   ========================================================= */
+const API = 'https://www.wikidata.org/w/api.php';
+const SPARQL = 'https://query.wikidata.org/sparql';
+const WIKI = 'https://en.wikipedia.org/w/api.php';
+const NOW = new Date().getFullYear();
+// Futbol takımı sınıfları: kulüp, erkek takımı, milli takım, futbol takımı
+const CLASSES = 'wd:Q476028 wd:Q103229495 wd:Q6979593 wd:Q15944511';
+
+// Hazır popüler takımlar (Wikidata ID'leri) — telefondan yazmadan tek dokunuşla seçmek için
+const POPULAR = [
+  ['Q495299','Galatasaray'],['Q6601875','Fenerbahçe'],['Q172567','Beşiktaş'],['Q192641','Trabzonspor'],
+  ['Q8682','Real Madrid'],['Q7156','Barcelona'],['Q8701','Atlético'],['Q18656','Man United'],
+  ['Q50602','Man City'],['Q1130849','Liverpool'],['Q9616','Chelsea'],['Q9617','Arsenal'],
+  ['Q18741','Tottenham'],['Q15789','Bayern'],['Q41420','Dortmund'],['Q1422','Juventus'],
+  ['Q1543','Milan'],['Q631','Inter'],['Q2641','Napoli'],['Q2739','Roma'],
+  ['Q483020','PSG'],['Q81888','Ajax'],['Q131499','Benfica'],['Q128446','Porto'],
+].map(([id, name]) => ({ id, name }));
+
+// Tarayıcı hafızası (gizli sekmede çalışmayabilir, o yüzden try/catch)
+const LS = {
+  get(k){ try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+  set(k,v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+const logos = LS.get('logos_v1') || {};          // takım id -> logo url
+const names = {};                                 // takım id -> kısa isim
+POPULAR.forEach(t => names[t.id] = t.name);
+
+const state = { a:null, b:null, slot:'a', sort:'smart', players:[], key:null };
+const pending = {};                               // çiftler için devam eden istekler
+
+const $ = id => document.getElementById(id);
+const qid = uri => uri.split('/').pop();
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pairKey = (a,b) => [a,b].sort().join('-');
+
+// "Liverpool F.C." -> "Liverpool", "AS Roma" -> "Roma"
+function shortName(label){
+  const drop = new Set(['FC','CF','SK','JK','AFC','SSC','AS','SL','FK','SC']);
+  const kept = label.split(/\s+/).filter(w => !drop.has(w.replace(/\./g,'').toUpperCase()));
+  return kept.join(' ') || label;
+}
+
+/* =========================================================
+   WIKIDATA / WIKIPEDIA İSTEKLERİ
+   ========================================================= */
+// Her istek en fazla `ms` bekler; takılırsa hata verir (sonsuza kadar "aranıyor" kalmasın)
+async function getJSON(url, signal, ms = 9000){
+  const c = new AbortController();
+  const t = setTimeout(() => c.abort(new Error('Bağlantı çok yavaş')), ms);
+  signal?.addEventListener('abort', () => c.abort(signal.reason), { once: true });
+  try {
+    const res = await fetch(url, { signal: c.signal });
+    if (!res.ok) throw new Error('Wikidata yanıt vermedi (' + res.status + ')');
+    return await res.json();
+  } finally { clearTimeout(t); }
+}
+async function sparql(query, signal, ms){
+  return (await getJSON(SPARQL + '?format=json&query=' + encodeURIComponent(query), signal, ms)).results.bindings;
+}
+
+// Takım arama: isimle ara + sadece futbol takımlarını tut (tek hızlı sorgu)
+async function searchTeams(text, signal){
+  const url = `${API}?action=wbsearchentities&format=json&origin=*&language=tr&uselang=tr&type=item&limit=12&search=${encodeURIComponent(text)}`;
+  const items = (await getJSON(url, signal, 6000)).search || [];
+  if (!items.length) return [];
+  const rows = await sparql(`SELECT ?t ?title ?logo WHERE {
+      VALUES ?t { ${items.map(i => 'wd:' + i.id).join(' ')} }
+      ?t wdt:P31 ?c . VALUES ?c { ${CLASSES} }
+      OPTIONAL { ?a schema:about ?t; schema:isPartOf <https://en.wikipedia.org/>; schema:name ?title }
+      OPTIONAL { ?t wdt:P154 ?logo } }`, signal);
+  const info = {};
+  rows.forEach(r => { const id = qid(r.t.value); info[id] ??= { title: r.title?.value, logo: r.logo?.value }; });
+  const teams = items.filter(i => info[i.id]).map(i => ({ id:i.id, name:shortName(i.label), desc:i.description || '' }));
+  teams.forEach(t => names[t.id] ??= t.name);
+  resolveLogos(info);  // logolar arka planda gelir, liste beklemez
+  return teams;
+}
+
+// Logo: önce Wikipedia sayfasındaki güncel arma, yoksa Wikidata'daki logo
+async function resolveLogos(info){
+  const ids = Object.keys(info).filter(id => !(id in logos));
+  if (!ids.length) return paintLogos();
+  const titles = [...new Set(ids.map(id => info[id].title).filter(Boolean))];
+  const thumbs = {};
+  if (titles.length) {
+    try {
+      const p = new URLSearchParams({ action:'query', format:'json', origin:'*', prop:'pageimages', piprop:'thumbnail',
+        pithumbsize:'160', pilicense:'any', pilimit:'50', redirects:'1', titles:titles.join('|') });
+      const d = await getJSON(WIKI + '?' + p);
+      const jump = {}; [...(d.query.normalized || []), ...(d.query.redirects || [])].forEach(n => jump[n.from] = n.to);
+      const pages = {}; Object.values(d.query.pages || {}).forEach(pg => { if (pg.thumbnail) pages[pg.title] = pg.thumbnail.source; });
+      titles.forEach(t => { let k = t; for (let i = 0; i < 3 && jump[k]; i++) k = jump[k]; if (pages[k]) thumbs[t] = pages[k]; });
+    } catch { return; }   // ağ hatasında boş logo kaydetme, sonra tekrar dener
+  }
+  ids.forEach(id => {
+    const i = info[id];
+    logos[id] = thumbs[i.title] || (i.logo ? i.logo.replace('http://','https://') + '?width=160' : '');
+  });
+  LS.set('logos_v1', logos);
+  paintLogos();
+}
+
+// Elimizde sadece ID olan takımların logolarını getir
+async function ensureLogos(ids){
+  const need = [...new Set(ids)].filter(id => !(id in logos));
+  if (!need.length) return paintLogos();
+  try {
+    const rows = await sparql(`SELECT ?t ?title ?logo WHERE {
+        VALUES ?t { ${need.map(i => 'wd:' + i).join(' ')} }
+        OPTIONAL { ?a schema:about ?t; schema:isPartOf <https://en.wikipedia.org/>; schema:name ?title }
+        OPTIONAL { ?t wdt:P154 ?logo } }`);
+    const info = {};
+    rows.forEach(r => { const id = qid(r.t.value); info[id] ??= { title: r.title?.value, logo: r.logo?.value }; });
+    await resolveLogos(info);
+  } catch {}
+}
+
+// İki takımda da oynamış oyuncular (yavaş etiket servisi yerine doğrudan etiket okuyoruz: ~5x hızlı)
+async function fetchPair(a, b){
+  const key = 'pair_v1:' + pairKey(a, b);
+  const cached = LS.get(key);
+  if (cached && Date.now() - cached.t < 6 * 3600e3) return cached.d;   // 6 saat önbellek
+
+  const rows = await sparql(`SELECT ?p ?links ?img ?team ?start ?end ?tr ?mul ?en WHERE {
+      ?p p:P54/ps:P54 wd:${a} . ?p p:P54/ps:P54 wd:${b} .
+      ?p wikibase:sitelinks ?links .
+      ?p p:P54 ?st . ?st ps:P54 ?team . VALUES ?team { wd:${a} wd:${b} }
+      OPTIONAL { ?st pq:P580 ?start } OPTIONAL { ?st pq:P582 ?end }
+      OPTIONAL { ?p wdt:P18 ?img }
+      OPTIONAL { ?p rdfs:label ?tr  FILTER(LANG(?tr)  = "tr")  }
+      OPTIONAL { ?p rdfs:label ?mul FILTER(LANG(?mul) = "mul") }
+      OPTIONAL { ?p rdfs:label ?en  FILTER(LANG(?en)  = "en")  } }`, null, 20000);
+
+  const map = new Map();
+  for (const r of rows) {
+    const id = qid(r.p.value);
+    if (!map.has(id)) map.set(id, {
+      id, name: (r.tr || r.mul || r.en)?.value || id, links: +r.links.value,
+      img: r.img ? r.img.value.replace('http://','https://') : null, s: { [a]:[], [b]:[] } });
+    const pl = map.get(id);
+    const sp = [r.start ? parseInt(r.start.value) : null, r.end ? parseInt(r.end.value) : null];
+    const list = pl.s[qid(r.team.value)];
+    if (!list.some(x => x[0] === sp[0] && x[1] === sp[1])) list.push(sp);
+  }
+  const d = [...map.values()];
+  d.forEach(p => Object.values(p.s).forEach(l => l.sort((x,y) => (x[0]||0) - (y[0]||0))));
+  LS.set(key, { t: Date.now(), d });
+  return d;
+}
+
+// Takımlar seçilir seçilmez arka planda yüklemeye başla
+function prefetch(){
+  const { a, b } = state;
+  if (!a || !b || a.id === b.id) return null;
+  const k = pairKey(a.id, b.id);
+  if (!pending[k]) pending[k] = fetchPair(a.id, b.id).catch(e => { delete pending[k]; throw e; });
+  return pending[k];
+}
+
+// Ünlülük + güncellik puanı
+function score(players, a, b){
+  const isNow = sp => sp[0] && !sp[1] && sp[0] >= NOW - 8;   // bitişi yoksa ve yeni başladıysa hâlâ orada
+  return players.map(p => {
+    const all = [...p.s[a], ...p.s[b]];
+    const cur = [a, b].find(t => p.s[t].some(isNow)) || null;
+    const last = Math.max(0, ...all.map(sp => sp[1] || (isNow(sp) ? NOW : sp[0]) || 0));
+    const ago = last ? Math.max(0, NOW - last) : 30;
+    return { ...p, cur, last, smart: p.links * (0.35 + 0.65 * Math.exp(-ago / 12)) * (cur ? 1.3 : 1) };
+  });
+}
+
+/* =========================================================
+   ARAYÜZ
+   ========================================================= */
+const initials = n => (n || '?').split(/\s+/).map(w => w[0]).join('').slice(0, 3).toUpperCase();
+const crest = (id, cls = '') => `<span class="crest ${cls}" data-id="${id}">${esc(initials(names[id]))}</span>`;
+
+function paintLogos(root = document){
+  root.querySelectorAll('.crest[data-id]').forEach(el => {
+    const url = logos[el.dataset.id];
+    if (!url || el.dataset.src === url) return;
+    el.dataset.src = url;
+    const img = new Image();
+    img.alt = ''; img.decoding = 'async';
+    img.onload = () => { el.textContent = ''; el.appendChild(img); };
+    img.src = url;
+  });
+}
+
+function renderSlots(){
+  for (const k of ['a','b']) {
+    const el = $(k === 'a' ? 'slotA' : 'slotB'), t = state[k];
+    el.classList.toggle('empty', !t);
+    el.innerHTML = t
+      ? `${crest(t.id)}<span class="nm">${esc(t.name)}</span>`
+      : `<span class="crest">+</span><span class="nm">${k === 'a' ? '1.' : '2.'} takım</span>`;
+  }
+  paintLogos($('slotA').parentNode);
+  const ok = state.a && state.b && state.a.id !== state.b.id;
+  $('go').disabled = !ok;
+  $('hint').innerHTML = ok ? `Hazır mısınız? <b>3·2·1</b>'e bas, ilk bulan kazansın.`
+    : (state.a && state.b) ? 'Aynı takımı iki kez seçtin.' : 'İki takım seç, ortak oyuncuyu ilk söyleyen kazansın.';
+}
+
+function setTeam(k, t){
+  state[k] = t;
+  if (t) {
+    names[t.id] ??= t.name;
+    const rec = (LS.get('recent_v1') || []).filter(x => x.id !== t.id);
+    rec.unshift({ id: t.id, name: t.name });
+    LS.set('recent_v1', rec.slice(0, 10));
+  }
+  renderSlots();
+  prefetch()?.catch(() => {});
+}
+
+/* ---------- Katmanlar ve geri tuşu ---------- */
+const layers = [];
+function openLayer(el){ el.classList.add('open'); el.setAttribute('aria-hidden','false'); layers.push(el); history.pushState({ l: layers.length }, ''); }
+function closeTop(){ const el = layers.pop(); if (el){ el.classList.remove('open'); el.setAttribute('aria-hidden','true'); } }
+window.addEventListener('popstate', closeTop);
+const back = () => history.back();
+
+/* ---------- Takım seçme paneli ---------- */
+let searchTimer, searchCtrl;
+function openSheet(k){
+  state.slot = k;
+  $('sheetTitle').textContent = (k === 'a' ? '1.' : '2.') + ' takımı seç';
+  $('q').value = '';
+  renderSheetHome();
+  openLayer($('sheet'));
+  setTimeout(() => $('q').focus(), 50);
+}
+function renderSheetHome(){
+  const rec = (LS.get('recent_v1') || []);
+  rec.forEach(t => names[t.id] ??= t.name);
+  $('sheetBody').innerHTML =
+    (rec.length ? `<div class="label">Son seçilenler</div><div class="recent">${
+      rec.map(t => `<button class="chip" data-id="${t.id}" data-name="${esc(t.name)}">${crest(t.id)}${esc(t.name)}</button>`).join('')}</div>` : '') +
+    `<div class="label">Popüler</div><div class="grid">${
+      POPULAR.map(t => `<button class="tile" data-id="${t.id}" data-name="${esc(t.name)}">${crest(t.id)}${esc(t.name)}</button>`).join('')}</div>`;
+  paintLogos($('sheetBody'));
+  ensureLogos([...POPULAR.map(t => t.id), ...rec.map(t => t.id)]);
+}
+function renderSearch(list){
+  $('sheetBody').innerHTML = list.length
+    ? `<div class="rows">${list.map(t => `<button class="row" data-id="${t.id}" data-name="${esc(t.name)}">
+        ${crest(t.id, 'sm')}<div><b>${esc(t.name)}</b><small>${esc(t.desc)}</small></div></button>`).join('')}</div>`
+    : `<div class="empty-msg">Futbol takımı bulunamadı.<br>Farklı yazmayı dene (ör. "Inter" yerine "Internazionale").</div>`;
+  paintLogos($('sheetBody'));
+}
+$('q').addEventListener('input', () => {
+  clearTimeout(searchTimer); searchCtrl?.abort();
+  const q = $('q').value.trim();
+  if (q.length < 2) { $('searchBox').classList.remove('searching'); return renderSheetHome(); }
+  $('searchBox').classList.add('searching');
+  searchTimer = setTimeout(async () => {
+    searchCtrl = new AbortController();
+    try { renderSearch(await searchTeams(q, searchCtrl.signal)); $('searchBox').classList.remove('searching'); }
+    catch (e) { if (e.name !== 'AbortError') { $('searchBox').classList.remove('searching');
+      $('sheetBody').innerHTML = '<div class="empty-msg">Bağlantı hatası, tekrar dene.</div>'; } }
+  }, 220);
+});
+$('sheetBody').addEventListener('click', e => {
+  const b = e.target.closest('[data-id]'); if (!b) return;
+  const t = { id: b.dataset.id, name: b.dataset.name };
+  setTeam(state.slot, t);
+  const other = state.slot === 'a' ? 'b' : 'a';
+  if (!state[other]) {           // diğer takım boşsa direkt onu seçtir
+    state.slot = other;
+    $('sheetTitle').textContent = (other === 'a' ? '1.' : '2.') + ' takımı seç';
+    $('q').value = ''; renderSheetHome(); $('q').focus();
+  } else back();
+});
+$('sheetClose').addEventListener('click', back);
+
+/* ---------- Ana ekran butonları ---------- */
+$('slotA').addEventListener('click', () => openSheet('a'));
+$('slotB').addEventListener('click', () => openSheet('b'));
+$('swap').addEventListener('click', () => { [state.a, state.b] = [state.b, state.a]; renderSlots(); });
+function randomPair(){
+  const pick = () => POPULAR[Math.floor(Math.random() * POPULAR.length)];
+  let a = pick(), b = pick();
+  while (b.id === a.id || (state.a && a.id === state.a.id && b.id === state.b?.id)) { a = pick(); b = pick(); }
+  setTeam('a', a); setTeam('b', b);
+  document.querySelectorAll('.slot .crest').forEach(c => c.animate(
+    [{ transform:'rotateY(0)' }, { transform:'rotateY(360deg)' }], { duration: 500, easing: 'ease-out' }));
+}
+$('random').addEventListener('click', randomPair);
+
+/* ---------- 3·2·1 geri sayım ---------- */
+let skipped = false, wake = null;
+$('count').addEventListener('click', () => { skipped = true; wake?.(); });   // dokununca geri sayımı atla
+const wait = ms => new Promise(r => { const t = setTimeout(r, ms); wake = () => { clearTimeout(t); r(); }; });
+
+async function start(){
+  const req = prefetch(); if (!req) return;
+  const { a, b } = state;
+  skipped = false;
+  $('count').classList.add('on');
+  for (const n of ['3','2','1']) {
+    const el = $('num'); el.className = 'num'; el.textContent = n; void el.offsetWidth; el.className = 'num pop';
+    if (navigator.vibrate) navigator.vibrate(30);
+    await wait(800);
+    if (skipped) break;
+  }
+  showResults(a, b, req);
+  $('count').classList.remove('on');
+}
+$('go').addEventListener('click', start);
+
+/* ---------- Sonuç ekranı ---------- */
+async function showResults(a, b, req){
+  state.key = pairKey(a.id, b.id);
+  $('resMatch').innerHTML = `<div class="t">${crest(a.id,'hd')}<span>${esc(a.name)}</span></div>
+    <div class="v">VS</div><div class="t"><span>${esc(b.name)}</span>${crest(b.id,'hd')}</div>`;
+  paintLogos($('resMatch'));
+  $('resCount').textContent = '';
+  $('resList').innerHTML = '<div class="skel"></div>'.repeat(5);
+  if (!$('results').classList.contains('open')) openLayer($('results'));
+  try {
+    const data = await req;
+    if (state.key !== pairKey(a.id, b.id)) return;
+    state.players = score(data, a.id, b.id);
+    renderList();
+  } catch (e) {
+    $('resList').innerHTML = `<div class="state"><b>Bağlantı sorunu</b>${esc(e.message)}<br>
+      <button class="ghost" id="retry">Tekrar dene</button></div>`;
+    $('retry').onclick = () => showResults(a, b, prefetch());
+  }
+}
+
+function renderList(){
+  const { a, b } = state, P = state.players;
+  if (!P.length) {
+    $('resCount').innerHTML = 'Ortak oyuncu <em>yok</em>';
+    $('resList').innerHTML = `<div class="state"><b>Kimse bulamaz 😅</b>Bu iki takımda birlikte oynamış oyuncu kaydı yok.</div>`;
+    return;
+  }
+  $('resCount').innerHTML = `<em>${P.length}</em> ortak oyuncu`;
+  const sorted = [...P].sort((x, y) =>
+    state.sort === 'fame' ? y.links - x.links :
+    state.sort === 'recent' ? (y.last - x.last) || (y.links - x.links) : y.smart - x.smart);
+  const max = Math.max(...P.map(p => p.links));
+  const yrs = sp => !sp[0] ? '?' : sp[0] === sp[1] ? `${sp[0]}` : `${sp[0]}–${sp[1] || (sp[0] >= NOW - 8 ? 'şimdi' : '?')}`;
+  $('resList').innerHTML = sorted.map((p, i) => {
+    const face = p.img
+      ? `<img class="face" loading="lazy" alt="" src="${esc(p.img)}?width=120" onerror="this.outerHTML='<div class=face>${esc(initials(p.name)).slice(0,2)}</div>'">`
+      : `<div class="face">${esc(initials(p.name).slice(0,2))}</div>`;
+    const sp = t => `<span class="sp">${crest(t.id,'xs')}${p.s[t.id].map(yrs).join(', ')}</span>`;
+    return `<div class="pl ${i < 3 ? 'r' + (i + 1) : ''}" style="animation-delay:${Math.min(i, 12) * 30}ms">
+      <div class="rk">${i + 1}</div>${face}
+      <div>
+        <a class="pn" href="https://www.wikidata.org/wiki/${p.id}" target="_blank" rel="noopener">${esc(p.name)}</a>${
+          p.cur ? `<span class="now">şu an ${esc(p.cur === a.id ? a.name : b.name)}</span>` : ''}
+        <div class="sps">${sp(a)}${sp(b)}</div>
+        <div class="fame"><i style="width:${Math.max(4, p.links / max * 100).toFixed(0)}%"></i></div>
+      </div></div>`;
+  }).join('');
+  paintLogos($('resList'));
+}
+
+$('seg').addEventListener('click', e => {
+  const k = e.target.dataset.k; if (!k) return;
+  state.sort = k;
+  $('seg').querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.k === k));
+  renderList(); $('resList').scrollTop = 0;
+});
+$('resBack').addEventListener('click', back);
+$('again').addEventListener('click', () => { state.a = state.b = null; renderSlots(); back(); });
+$('resRandom').addEventListener('click', () => { randomPair(); back(); });
+
+/* ---------- Başlangıç ---------- */
+renderSlots();
+ensureLogos(POPULAR.map(t => t.id));   // popüler armaları ilk açılışta indir ve hatırla
+</script>
+</body>
+</html>
