@@ -14,7 +14,8 @@ Kafede oynanan **3-2-1** oyunu için mobil web uygulaması.
 - 🔄 Veriler canlı olarak Wikidata'dan gelir, yeni transferler de görünür
 - 🏆 Ünlülük ve güncelliğe göre sıralama, "şu an bu takımda" etiketi ve **Güncel** filtresi
 - 🔎 Sonuç listesinde isimle arama
-- 👤 **Oyuncu kariyeri:** takım seçmeden bir futbolcu ara, oynadığı bütün kulüpleri gör
+- 👤 **Oyuncu kariyeri:** takım seçmeden bir futbolcu ara, oynadığı bütün kulüpleri gör (altyapı ayrı bölümde)
+- 🇹🇷 Türk ligleri için Türkçe Wikipedia verisi
 - 🎲 Rastgele eşleşme
 - 📟 Retro stadyum skorbordu teması
 
@@ -22,7 +23,8 @@ Kafede oynanan **3-2-1** oyunu için mobil web uygulaması.
 
 Tek bir `index.html` dosyasından oluşur, sunucu ya da API anahtarı gerekmez.
 
-- **Oyuncular:** [Wikidata SPARQL](https://query.wikidata.org/) ile iki takımda da kaydı (P54) olan futbolcular çekilir.
+- **Oyuncular:** [Wikidata SPARQL](https://query.wikidata.org/) ile iki takımda da kaydı (P54) olan futbolcular çekilir. Buna ek olarak Türkçe ve İngilizce Wikipedia'daki "X futbolcuları" kategorilerinin kesişimi de eklenir; böylece Wikidata'da eksik kalan (özellikle Türk ligindeki) oyuncular da bulunur.
+- **Kariyer:** Wikidata kayıtları Türkçe ve İngilizce Wikipedia bilgi kutularıyla birleştirilir. Kulüpler, A milli takım ve altyapı (B/C takımları, akademiler, genç milli takımlar) ayrı gösterilir.
 - **Ünlülük:** Oyuncunun kaç farklı dilde Wikipedia sayfası olduğu.
 - **Güncellik:** Takımlardaki son yılı; yakın zamandakiler öne çıkar.
 - **"Şu an" kontrolü:** Wikidata'da bitiş tarihi unutulmuş kayıtlar çok, bu yüzden ona güvenilmez. Oyuncunun İngilizce Wikipedia sayfasındaki "current club" bilgisi bu takımı gösteriyorsa "şu an" yazılır; emin olunamazsa yazılmaz.

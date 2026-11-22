@@ -170,6 +170,11 @@
   .club.cur{border-color:rgba(255,178,26,.6)}
   .club>div{min-width:0}
   .sec{margin:14px 2px 4px}
+  .minis{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+  .mini{display:flex;align-items:center;gap:10px;padding:7px 4px;border-bottom:1px solid var(--line);font-size:13px;color:var(--muted)}
+  .mini .crest{width:24px;height:24px;font-size:10px}
+  .mini span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .mini small{margin-left:auto;color:var(--faint);font-size:11px;white-space:nowrap}
 
   @media (min-width:520px){ .app{border-left:1px solid var(--line);border-right:1px solid var(--line)} }
   @media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important} }
@@ -305,25 +310,137 @@ function shortName(l){
    (sayfa yok, bilgi yok, teknik direktör, emekli) "şu an" yazmıyoruz.
    ========================================================= */
 const years = (sp, cur) => !sp[0] ? '?' : sp[0] === sp[1] ? `${sp[0]}` : `${sp[0]}–${sp[1] || (cur ? 'şimdi' : '?')}`;
-// "Galatasaray S.K. (football)" -> "galatasaray", "Manchester United F.C." -> "manchester united"
-const core = s => fold(s).replace(/\(.*?\)/g, ' ')
-  .replace(/\b(f\.?c|c\.?f|s\.?k|j\.?k|a\.?f\.?c|s\.?s\.?c|a\.?s|s\.?l|fk|sc)\b\.?/g, ' ').replace(/[^a-z0-9]+/g, ' ').trim();
-const sameClub = (cands, title) => !!title && cands.some(c => core(c) && core(c) === core(title));
-
-function currentClub(wikitext){
-  const m = wikitext.match(/\|\s*current_?club\s*=([^\n]*)/i);
+/* ---------- Wikipedia bilgi kutuları (Türkçe + İngilizce) ---------- */
+async function wikiText(wiki, title){
+  const d = await getJSON(`https://${wiki}.wikipedia.org/w/api.php?` + new URLSearchParams({ action:'parse', format:'json', origin:'*', prop:'wikitext', section:'0', redirects:'1', page:title }), null, 8000);
+  return d.parse?.wikitext?.['*'] || '';
+}
+const stripRefs = v => v.replace(/<ref[^>]*\/>/g, '').replace(/<ref[^>]*>[\s\S]*?<\/ref>/g, '').replace(/<!--[\s\S]*?-->/g, '');
+// Bilgi kutusundaki "| alan = değer" satırları
+function infoboxParams(w){
+  const out = {};
+  for (const line of stripRefs(w).split('\n')) {
+    const m = line.match(/^\s*\|\s*([^=|{}\[\]]+?)\s*=(.*)$/);
+    if (m) out[m[1].trim().toLocaleLowerCase('tr').replace(/\s+/g, '')] = m[2].trim();
+  }
+  return out;
+}
+const linkOf = v => { const m = v && v.match(/\[\[([^\]|#]+)(?:\|([^\]]+))?\]\]/); return m ? { title: m[1].trim(), text: m[2] ? m[2].replace(/'''?/g, '').trim() : m[1].trim() } : null; };
+function yearsOf(v){
+  const m = (v || '').match(/(\d{4})(\s*[-–—]\s*(\d{4})?)?/);
+  if (!m) return [null, null];
+  return [+m[1], m[3] ? +m[3] : (m[2] ? null : +m[1])];
+}
+// Altyapı / yedek / genç milli takım mı? (Barcelona B, Jong Ajax, Castilla, U21, 19 yaş altı…)
+const isYouthName = s => /(\bU-?\s?\d{2}\b|under[\s-]?\d{2}|\d{2}\s*yaş\s*altı|olympic|olimpi|\byouth\b|academy|akademi|altyapı|reserves?\b|\bcastilla\b|atl[eè]tic\b|primavera|^jong\s|\bjuvenil|\s(B|C|II|III|A2)$)/i.test(s || '');
+const NOT_PLAYING = /coach|manager|assistant|director|retired|free agent|unattached|without|president|chairman|scout|teknik direktör|antrenör|emekli|serbest|kulüpsüz|yardımcı/i;
+// Şu anki kulüp: İngilizce "current_club", Türkçe "bulunduğukulüp"
+function currentClubOf(P){
+  const raw = P['current_club'] ?? P['currentclub'] ?? P['bulunduğukulüp'] ?? P['şimdikikulüp'];
+  if (!raw || NOT_PLAYING.test(raw)) return null;
+  return linkOf(raw);
+}
+// {{fb|TUR}} gibi milli takım şablonları için Türkçe ülke adları
+const NATS = { TUR:'Türkiye', GER:'Almanya', NED:'Hollanda', BRA:'Brezilya', ARG:'Arjantin', FRA:'Fransa', ESP:'İspanya', ITA:'İtalya',
+  POR:'Portekiz', ENG:'İngiltere', BEL:'Belçika', CRO:'Hırvatistan', SRB:'Sırbistan', BIH:'Bosna-Hersek', NGA:'Nijerya', SEN:'Senegal',
+  CMR:'Kamerun', CIV:'Fildişi Sahili', GHA:'Gana', MAR:'Fas', ALG:'Cezayir', URU:'Uruguay', COL:'Kolombiya', MEX:'Meksika', AUT:'Avusturya',
+  SUI:'İsviçre', POL:'Polonya', CZE:'Çekya', GRE:'Yunanistan', ROU:'Romanya', BUL:'Bulgaristan', UKR:'Ukrayna', RUS:'Rusya', SWE:'İsveç',
+  NOR:'Norveç', DEN:'Danimarka', MKD:'Kuzey Makedonya', ALB:'Arnavutluk', KVX:'Kosova', KOS:'Kosova', MNE:'Karadağ', SVN:'Slovenya',
+  SVK:'Slovakya', HUN:'Macaristan', GEO:'Gürcistan', AZE:'Azerbaycan', IRN:'İran', JPN:'Japonya', KOR:'Güney Kore', AUS:'Avustralya',
+  CHI:'Şili', PAR:'Paraguay', PER:'Peru', ECU:'Ekvador', EGY:'Mısır', TUN:'Tunus', MLI:'Mali', SCO:'İskoçya', WAL:'Galler',
+  ISL:'İzlanda', FIN:'Finlandiya', ISR:'İsrail', CAN:'Kanada' };
+function natOf(v){
+  const l = linkOf(v);
+  if (l) return { title: l.title, text: l.text, youth: isYouthName(l.text) || isYouthName(l.title) };
+  const m = v.match(/\{\{\s*(fbu|fb)\s*\|([^}]*)\}\}/i);
   if (!m) return null;
-  const raw = m[1].replace(/<ref[^>]*\/>/g, '').replace(/<ref[^>]*>.*?<\/ref>/g, '').replace(/<!--.*?-->/g, '').trim();
-  if (!raw || /coach|manager|assistant|director|retired|free agent|unattached|without|president|chairman|scout/i.test(raw)) return null;
-  const link = raw.match(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/);
-  if (link) return [link[1], link[2] || link[1]];
-  const plain = raw.replace(/\{\{[^}]*\}\}/g, '').replace(/[\[\]']/g, '').trim();
-  return plain ? [plain] : null;
+  const parts = m[2].split('|').map(s => s.trim());
+  const named = parts.find(x => /^name\s*=/.test(x))?.split('=')[1]?.trim();
+  const pos = parts.filter(x => !x.includes('='));
+  const youth = m[1].toLowerCase() === 'fbu';
+  const country = NATS[(youth ? pos[1] : pos[0] || '').toUpperCase()];
+  if (!country) return null;
+  return { title: `${country} millî futbol takımı`, wiki: 'tr', text: named || (youth ? `${country} U-${pos[0]}` : country), youth };
 }
-async function wikiCurrentClub(title){
-  const d = await getJSON(WIKI + '?' + new URLSearchParams({ action:'parse', format:'json', origin:'*', prop:'wikitext', section:'0', redirects:'1', page:title }), null, 8000);
-  return currentClub(d.parse?.wikitext?.['*'] || '');
+function infoboxCareer(P, wiki){
+  const keys = wiki === 'tr'
+    ? [['club','kulüp','kulüpyıl'], ['youth','altyapıkulübü','altyapıyıl'], ['nat','millitakım','milliyıl']]
+    : [['club','clubs','years'], ['youth','youthclubs','youthyears'], ['nat','nationalteam','nationalyears']];
+  const out = [];
+  for (const [kind, ck, yk] of keys) for (let i = 1; i <= 40; i++) {
+    const v = P[ck + i]; if (!v) continue;
+    const sp = yearsOf(P[yk + i]);
+    if (kind === 'nat') { const n = natOf(v); if (n) out.push({ kind: n.youth ? 'youth' : 'nat', nat: true, wiki: n.wiki || wiki, title: n.title, text: n.text, sp }); continue; }
+    const l = linkOf(v); if (!l) continue;
+    out.push({ kind: kind === 'youth' || isYouthName(l.text) ? 'youth' : 'club', wiki, title: l.title, text: l.text, sp });
+  }
+  return out;
 }
+// Wikipedia sayfa adı -> Wikidata ID (yönlendirmeler dahil)
+async function titlesToQ(wiki, titles){
+  const out = {};
+  for (let i = 0; i < titles.length; i += 50) {
+    const part = titles.slice(i, i + 50);
+    const d = await getJSON(`https://${wiki}.wikipedia.org/w/api.php?` + new URLSearchParams({ action:'query', format:'json', origin:'*',
+      prop:'pageprops', ppprop:'wikibase_item', redirects:'1', titles: part.join('|') }), null, 8000);
+    const jump = {}; [...(d.query?.normalized || []), ...(d.query?.redirects || [])].forEach(n => jump[n.from] = n.to);
+    const pages = {}; Object.values(d.query?.pages || {}).forEach(pg => { if (pg.pageprops?.wikibase_item) pages[pg.title] = pg.pageprops.wikibase_item; });
+    part.forEach(t => { let k = t; for (let j = 0; j < 3 && jump[k]; j++) k = jump[k]; if (pages[k]) out[t] = pages[k]; });
+  }
+  return out;
+}
+async function sitelinksOf(ids){
+  const out = {};
+  for (let i = 0; i < ids.length; i += 50) {
+    const d = await getJSON(`${API}?` + new URLSearchParams({ action:'wbgetentities', format:'json', origin:'*', props:'sitelinks',
+      sitefilter:'enwiki|trwiki', ids: ids.slice(i, i + 50).join('|') }), null, 8000);
+    Object.values(d.entities || {}).forEach(e => out[e.id] = e.sitelinks || {});
+  }
+  return out;
+}
+
+/* ---------- Wikipedia kategorileri: "Galatasaray SK futbolcuları" ---------- */
+async function teamCategories(id){
+  const key = 'cat_v1:' + id, c = LS.get(key);
+  if (c && Date.now() - c.t < 24 * 3600e3) return c.d;
+  const res = { tr: null, en: null };
+  const cl = await getJSON(`${API}?action=wbgetclaims&format=json&origin=*&property=P6112&entity=${id}`, null, 6000);
+  const cid = cl.claims?.P6112?.[0]?.mainsnak?.datavalue?.value?.id;
+  const sl = await sitelinksOf([id, cid].filter(Boolean));
+  if (cid) { res.tr = sl[cid]?.trwiki?.title || null; res.en = sl[cid]?.enwiki?.title || null; }
+  if (!res.tr && sl[id]?.trwiki) res.tr = 'Kategori:' + sl[id].trwiki.title.replace(/\s*\(futbol takımı\)/, '') + ' futbolcuları';
+  LS.set(key, { t: Date.now(), d: res });
+  return res;
+}
+async function catMembers(wiki, cat){
+  const key = 'catm_v1:' + wiki + ':' + cat, c = LS.get(key);
+  if (c && Date.now() - c.t < 24 * 3600e3) return c.d;
+  const out = []; let cont = null;
+  for (let i = 0; i < 10; i++) {
+    const p = { action:'query', format:'json', origin:'*', list:'categorymembers', cmtitle:cat, cmnamespace:'0', cmlimit:'500' };
+    if (cont) p.cmcontinue = cont;
+    const d = await getJSON(`https://${wiki}.wikipedia.org/w/api.php?` + new URLSearchParams(p), null, 8000);
+    (d.query?.categorymembers || []).forEach(m => out.push(m.title));
+    cont = d.continue?.cmcontinue; if (!cont) break;
+  }
+  LS.set(key, { t: Date.now(), d: out });
+  return out;
+}
+// İki takımın kategorilerinde birden olan oyuncular (Wikidata ID listesi)
+async function categoryCommon(a, b){
+  const [ca, cb] = await Promise.all([teamCategories(a), teamCategories(b)]);
+  const out = new Set();
+  await Promise.all(['tr', 'en'].map(async w => {
+    if (!ca[w] || !cb[w]) return;
+    try {
+      const [ma, mb] = await Promise.all([catMembers(w, ca[w]), catMembers(w, cb[w])]);
+      const inB = new Set(mb), common = ma.filter(t => inB.has(t));
+      Object.values(await titlesToQ(w, common)).forEach(id => out.add(id));
+    } catch {}
+  }));
+  return [...out];
+}
+
 // Aynı anda en fazla n istek
 async function pool(items, n, fn){
   const out = []; let i = 0;
@@ -408,7 +525,7 @@ async function pageImages(wiki, titles){
 }
 const logoBusy = new Set();
 async function ensureLogos(ids){
-  const need = [...new Set(ids)].filter(id => id && !(id in logos) && !logoBusy.has(id));
+  const need = [...new Set(ids)].filter(id => /^Q\d+$/.test(id || '') && !(id in logos) && !logoBusy.has(id));
   if (!need.length) return paintLogos();
   need.forEach(id => logoBusy.add(id));
   let failed = false;
@@ -450,94 +567,170 @@ async function ensureLogos(ids){
   }
 }
 
-// İki takımda da oynamış oyuncular
+// İki takımda da oynamış oyuncular: Wikidata + Türkçe/İngilizce Wikipedia kategorileri
+const PLAYER_LABELS = `OPTIONAL { ?p rdfs:label ?tr  FILTER(LANG(?tr)  = "tr")  }
+      OPTIONAL { ?p rdfs:label ?mul FILTER(LANG(?mul) = "mul") }
+      OPTIONAL { ?p rdfs:label ?en  FILTER(LANG(?en)  = "en")  }`;
 async function fetchPair(a, b){
-  const key = 'pair_v3:' + pairKey(a, b);
+  const key = 'pair_v4:' + pairKey(a, b);
   const cached = LS.get(key);
   if (cached && Date.now() - cached.t < 6 * 3600e3) return cached.d;
 
-  const rows = await sparql(`SELECT ?p ?links ?img ?team ?start ?end ?tr ?mul ?en WHERE {
+  const [rows, catIds] = await Promise.all([
+    sparql(`SELECT ?p ?links ?img ?team ?start ?end ?tr ?mul ?en WHERE {
       ?p p:P54/ps:P54 wd:${a} . ?p p:P54/ps:P54 wd:${b} . ?p wikibase:sitelinks ?links .
       ?p p:P54 ?st . ?st ps:P54 ?team . VALUES ?team { wd:${a} wd:${b} }
       OPTIONAL { ?st pq:P580 ?start } OPTIONAL { ?st pq:P582 ?end } OPTIONAL { ?p wdt:P18 ?img }
-      OPTIONAL { ?p rdfs:label ?tr  FILTER(LANG(?tr)  = "tr")  }
-      OPTIONAL { ?p rdfs:label ?mul FILTER(LANG(?mul) = "mul") }
-      OPTIONAL { ?p rdfs:label ?en  FILTER(LANG(?en)  = "en")  } }`, null, 20000);
+      ${PLAYER_LABELS} }`, null, 20000),
+    categoryCommon(a, b).catch(() => []),
+  ]);
 
   const map = new Map();
-  for (const r of rows) {
+  const add = r => {
     const id = qid(r.p.value);
     if (!map.has(id)) map.set(id, { id, name: label(r) || id, links: +r.links.value, img: r.img?.value || null, s: { [a]:[], [b]:[] }, now: null });
+    if (!r.team) return;
     const sp = [yr(r.start?.value), yr(r.end?.value)];
     const list = map.get(id).s[qid(r.team.value)];
-    if (!list.some(x => x[0] === sp[0] && x[1] === sp[1])) list.push(sp);
+    if (list && !list.some(x => x[0] === sp[0] && x[1] === sp[1])) list.push(sp);
+  };
+  rows.forEach(add);
+
+  // Wikidata'da kaydı eksik olup Wikipedia kategorilerinde iki takımda da görünenler
+  const extras = catIds.filter(id => !map.has(id));
+  if (extras.length) {
+    const rows2 = await sparql(`SELECT ?p ?links ?img ?team ?start ?end ?tr ?mul ?en WHERE {
+        VALUES ?p { ${ids2values(extras)} } ?p wikibase:sitelinks ?links . OPTIONAL { ?p wdt:P18 ?img }
+        OPTIONAL { ?p p:P54 ?st . ?st ps:P54 ?team . VALUES ?team { wd:${a} wd:${b} }
+                   OPTIONAL { ?st pq:P580 ?start } OPTIONAL { ?st pq:P582 ?end } }
+        ${PLAYER_LABELS} }`, null, 15000).catch(() => []);
+    rows2.forEach(add);
   }
+
   const d = [...map.values()];
   d.forEach(p => Object.values(p.s).forEach(l => l.sort((x, y) => (x[0] || 0) - (y[0] || 0))));
   if (d.length) LS.set(key, { t: Date.now(), d, verified: false });   // boş sonucu saklama (geçici hata olabilir)
   return d;
 }
 
-// "Şu an" doğrulaması: sonuçları bekletmez, arka planda çalışır
+// "Şu an" doğrulaması: oyuncunun Wikipedia sayfasındaki güncel kulübü (önce İngilizce, yoksa Türkçe).
+// Sonuçları bekletmez, arka planda çalışır.
 async function verifyPair(a, b, d){
-  const key = 'pair_v3:' + pairKey(a, b);
+  const key = 'pair_v4:' + pairKey(a, b);
   if (LS.get(key)?.verified) return false;
-  // Aday: bu takımlarda bitişi yazılmamış ya da son 2 yılda bitmiş dönemi olanlar
-  const cand = d.filter(p => Object.values(p.s).some(l => l.some(sp => (sp[0] && !sp[1]) || (sp[1] && sp[1] >= NOW - 1))));
+  const cand = d.filter(p => Object.values(p.s).some(l => !l.length || l.some(sp => (sp[0] && !sp[1]) || (sp[1] && sp[1] >= NOW - 1))))
+    .sort((x, y) => y.links - x.links).slice(0, 40);
   d.forEach(p => p.now = null);
   if (cand.length) {
-    // İngilizce Wikipedia sayfa adları (wbgetentities: SPARQL'den hızlı ve istikrarlı)
-    const title = {}, all = [a, b, ...cand.map(p => p.id)];
-    for (let i = 0; i < all.length; i += 50) {
-      const d2 = await getJSON(`${API}?` + new URLSearchParams({ action:'wbgetentities', format:'json', origin:'*',
-        props:'sitelinks', sitefilter:'enwiki', ids: all.slice(i, i + 50).join('|') }), null, 8000);
-      Object.values(d2.entities || {}).forEach(e => { if (e.sitelinks?.enwiki) title[e.id] = e.sitelinks.enwiki.title; });
-    }
-    const clubs = await pool(cand, 6, p => title[p.id] ? wikiCurrentClub(title[p.id]) : null);
-    cand.forEach((p, i) => { const c = clubs[i]; if (c) p.now = sameClub(c, title[a]) ? a : sameClub(c, title[b]) ? b : null; });
+    const sl = await sitelinksOf(cand.map(p => p.id));
+    const links = await pool(cand, 6, async p => {
+      const s = sl[p.id] || {}, wiki = s.enwiki ? 'en' : s.trwiki ? 'tr' : null;
+      if (!wiki) return null;
+      const l = currentClubOf(infoboxParams(await wikiText(wiki, s[wiki + 'wiki'].title)));
+      return l ? { ...l, wiki } : null;
+    });
+    const want = { tr: new Set(), en: new Set() };
+    links.forEach(l => l && want[l.wiki].add(l.title));
+    const q = { tr: {}, en: {} };
+    await Promise.all(['tr', 'en'].map(async w => { if (want[w].size) q[w] = await titlesToQ(w, [...want[w]]); }));
+    cand.forEach((p, i) => { const l = links[i], cq = l && q[l.wiki][l.title]; if (cq === a || cq === b) p.now = cq; });
   }
   LS.set(key, { t: Date.now(), d, verified: true });
   return true;
 }
 
-// Bir oyuncunun bütün takımları
+// Bir oyuncunun kariyeri: Wikidata + Türkçe/İngilizce Wikipedia bilgi kutusu
 async function fetchCareer(id){
-  const key = 'career_v2:' + id;
+  const key = 'career_v3:' + id;
   const cached = LS.get(key);
   if (cached && Date.now() - cached.t < 6 * 3600e3) return cached.d;
-  const rows = await sparql(`SELECT ?team ?start ?end ?tr ?mul ?en ?nat ?ttitle ?ptitle WHERE {
+
+  const [rows, sl] = await Promise.all([
+    sparql(`SELECT ?team ?start ?end ?tr ?mul ?en ?nat WHERE {
       wd:${id} p:P54 ?st . ?st ps:P54 ?team .
       OPTIONAL { ?st pq:P580 ?start } OPTIONAL { ?st pq:P582 ?end }
       OPTIONAL { ?team rdfs:label ?tr  FILTER(LANG(?tr)  = "tr")  }
       OPTIONAL { ?team rdfs:label ?mul FILTER(LANG(?mul) = "mul") }
       OPTIONAL { ?team rdfs:label ?en  FILTER(LANG(?en)  = "en")  }
-      OPTIONAL { ?ts schema:about ?team; schema:isPartOf <https://en.wikipedia.org/>; schema:name ?ttitle }
-      OPTIONAL { ?ps schema:about wd:${id}; schema:isPartOf <https://en.wikipedia.org/>; schema:name ?ptitle }
-      BIND(EXISTS { ?team wdt:P31 wd:Q6979593 } AS ?nat) }`, null, 15000);
-  const map = new Map(); let ptitle = null;
+      BIND(EXISTS { ?team wdt:P31 wd:Q6979593 } AS ?nat) }`, null, 15000).catch(() => []),
+    sitelinksOf([id]).then(x => x[id] || {}).catch(() => ({})),
+  ]);
+
+  // 1) Wikidata'daki takımlar
+  const wd = new Map();
   for (const r of rows) {
-    ptitle ??= r.ptitle?.value || null;
     const tid = qid(r.team.value);
-    // Milli takım mı? (genç milli takımlar da: "Spain national under-21 ...")
     const nat = r.nat?.value === 'true' || /\bnational\b/i.test(r.en?.value || '') || /mill[iî]/i.test(r.tr?.value || '');
+    const youth = isYouthName(r.en?.value) || isYouthName(r.tr?.value) || isYouthName(label(r));
     let name = shortName(label(r) || tid);
     if (nat) name = name.replace(/\s*mill[iî]\s+futbol\s+takımı/i, '').replace(/\s+national\s+(association\s+)?football\s+team/i, '');
-    if (!map.has(tid)) map.set(tid, { id: tid, name, nat, title: r.ttitle?.value || null, s: [] });
-    const sp = [yr(r.start?.value), yr(r.end?.value)];
-    const t = map.get(tid);
+    if (!wd.has(tid)) wd.set(tid, { id: tid, logo: tid, name, kind: youth ? 'youth' : nat ? 'nat' : 'club', s: [] });
+    const sp = [yr(r.start?.value), yr(r.end?.value)], t = wd.get(tid);
     if (!t.s.some(x => x[0] === sp[0] && x[1] === sp[1])) t.s.push(sp);
   }
-  const teams = [...map.values()];
-  teams.forEach(t => t.s.sort((x, y) => (x[0] || 9999) - (y[0] || 9999)));
-  teams.sort((x, y) => (x.s[0][0] || 9999) - (y.s[0][0] || 9999));
-  // Şu anki kulüp: Wikipedia'daki bilgiyle doğrula
-  let cur = null, sure = true;
-  if (ptitle) {
-    try { const c = await wikiCurrentClub(ptitle); if (c) cur = teams.find(t => !t.nat && sameClub(c, t.title))?.id || null; }
-    catch { sure = false; }
+
+  // 2) Wikipedia bilgi kutuları (Türk oyuncularda Türkçe sayfa genelde çok daha eksiksiz)
+  const [trW, enW] = await Promise.all([
+    sl.trwiki ? wikiText('tr', sl.trwiki.title).catch(() => '') : '',
+    sl.enwiki ? wikiText('en', sl.enwiki.title).catch(() => '') : '',
+  ]);
+  const trP = infoboxParams(trW), enP = infoboxParams(enW);
+  let ib = infoboxCareer(trP, 'tr');
+  if (!ib.some(e => e.kind === 'club')) ib = infoboxCareer(enP, 'en');
+  const enCur = currentClubOf(enP), trCur = currentClubOf(trP);
+  const curL = sl.enwiki ? (enCur && { ...enCur, wiki: 'en' }) : (trCur && { ...trCur, wiki: 'tr' });
+
+  const want = { tr: new Set(), en: new Set() };
+  ib.forEach(e => want[e.wiki].add(e.title));
+  if (curL) want[curL.wiki].add(curL.title);
+  const q = { tr: {}, en: {} };
+  await Promise.all(['tr', 'en'].map(async w => { if (want[w].size) q[w] = await titlesToQ(w, [...want[w]]).catch(() => ({})); }));
+
+  // 3) Birleştir
+  const teams = new Map();
+  const put = (k, base, sp) => {
+    if (!teams.has(k)) teams.set(k, { ...base, s: [] });
+    const t = teams.get(k);
+    if (!t.s.some(x => x[0] === sp[0] && x[1] === sp[1])) t.s.push(sp);
+  };
+  const hasClubs = ib.some(e => e.kind === 'club'), hasYouth = ib.some(e => e.kind === 'youth');
+  const seen = new Set();
+  for (const e of ib) {
+    const tq = q[e.wiki][e.title] || null;
+    if (e.kind === 'youth' && e.nat) {        // genç milli takım: logo için A milli takımın logosu
+      put('y:' + e.text, { id: 'x:' + e.text, logo: tq, name: e.text, kind: 'youth' }, e.sp);
+      continue;
+    }
+    const tid = tq || 'x:' + e.text;
+    if (tq) seen.add(tq + ':' + e.kind);
+    put(tid + ':' + e.kind, { id: tid, logo: tq, name: e.text, kind: e.kind }, e.sp);
   }
-  const d = { teams, cur };
-  if (sure) LS.set(key, { t: Date.now(), d });
+  for (const t of wd.values()) {
+    if (seen.has(t.id + ':' + t.kind) || teams.has(t.id + ':' + t.kind)) continue;
+    if (t.kind === 'club' && hasClubs) continue;   // bilgi kutusu varsa kulüp listesi oradan
+    if (t.kind === 'youth' && hasYouth) continue;  // altyapı listesi de öyle
+    teams.set(t.id + ':' + t.kind, t);
+  }
+
+  // Aynı altyapı takımı iki kaynaktan farklı yazılmış olabilir: "Türkiye U-19" = "Türkiye 19 Yaş Altı"
+  const youthKey = n => fold(n).replace(/(\d{2})\s*yas\s*alti/, 'u$1').replace(/under[\s-]?(\d{2})/, 'u$1')
+    .replace(/\bu-?\s?(\d{2})/, 'u$1').replace(/national|mill[iî]|futbol|football|takimi|team|association/g, '').replace(/[^a-z0-9]/g, '');
+  const byYouth = new Map();
+  for (const [k, t] of [...teams]) {
+    if (t.kind !== 'youth') continue;
+    const yk = youthKey(t.name), prev = byYouth.get(yk);
+    if (!prev) { byYouth.set(yk, k); continue; }
+    const keep = teams.get(prev), hasYears = x => x.s.some(sp => sp[0]);
+    if (!hasYears(keep) && hasYears(t)) { t.logo ||= keep.logo; teams.delete(prev); byYouth.set(yk, k); }
+    else { keep.logo ||= t.logo; teams.delete(k); }
+  }
+
+  const list = [...teams.values()];
+  list.forEach(t => t.s.sort((x, y) => (x[0] || 9999) - (y[0] || 9999)));
+  list.sort((x, y) => (x.s[0]?.[0] || 9999) - (y.s[0]?.[0] || 9999));
+  const curQ = curL ? q[curL.wiki][curL.title] || null : null;
+  const d = { teams: list, cur: curQ };
+  LS.set(key, { t: Date.now(), d });
   return d;
 }
 
@@ -786,7 +979,7 @@ function renderList(animate){
   }
   const max = Math.max(...P.map(p => p.links));
   $('resList').innerHTML = shown.map((p, i) => {
-    const sp = t => `<span class="sp">${crest(t.id,'xs')}${p.s[t.id].map(x => years(x, p.cur === t.id)).join(', ')}</span>`;
+    const sp = t => `<span class="sp">${crest(t.id,'xs')}${p.s[t.id].map(x => years(x, p.cur === t.id)).join(', ')}</span>`;   // yılı bilinmiyorsa sadece arma
     return `<button class="pl ${p.rank <= 3 ? 'r' + p.rank : ''}" data-pid="${p.id}" style="animation-delay:${Math.min(i, 12) * 30}ms">
       <div class="rk">${p.rank}</div>${face(p)}
       <div>
@@ -824,18 +1017,21 @@ async function showCareer(p, remember){
     <div class="clubs">${'<div class="skel"></div>'.repeat(4)}</div>`;
   try {
     const { teams, cur: curTeam } = await fetchCareer(p.id);
-    teams.forEach(t => names[t.id] ??= t.name);
+    teams.forEach(t => { names[t.logo || t.id] ??= t.name; names[t.id] ??= t.name; });
+    const tag = t => crest(t.logo || t.id, '').replace('class="crest ', `class="crest ${t.logo ? '' : 'nologo '}`);
     const row = (t, i) => {
-      const cur = t.id === curTeam;
-      return `<div class="club ${cur ? 'cur' : ''}" style="animation-delay:${Math.min(i, 15) * 25}ms">${crest(t.id, 'md')}
+      const cur = t.kind === 'club' && t.id === curTeam;
+      return `<div class="club ${cur ? 'cur' : ''}" style="animation-delay:${Math.min(i, 15) * 25}ms">${crest(t.logo || t.id, 'md')}
         <div><b>${esc(t.name)}${cur ? '<span class="now">şu an</span>' : ''}</b><small>${t.s.map(sp => years(sp, cur)).join(' · ')}</small></div></div>`;
     };
-    const clubs = teams.filter(t => !t.nat), nat = teams.filter(t => t.nat);
+    const mini = t => `<div class="mini">${crest(t.logo || t.id, 'xs')}<span>${esc(t.name)}</span><small>${t.s.map(sp => years(sp, false)).join(' · ')}</small></div>`;
+    const clubs = teams.filter(t => t.kind === 'club'), nat = teams.filter(t => t.kind === 'nat'), youth = teams.filter(t => t.kind === 'youth');
     body.querySelector('.clubs').innerHTML = !teams.length ? '<div class="empty-msg">Bu oyuncunun takım kaydı yok.</div>'
-      : `<div class="label">${clubs.length} kulüp</div>${clubs.map(row).join('')}` +
-        (nat.length ? `<div class="label sec">Milli takım</div>${nat.map((t, i) => row(t, clubs.length + i)).join('')}` : '');
+      : (clubs.length ? `<div class="label">${clubs.length} kulüp</div>${clubs.map(row).join('')}` : '') +
+        (nat.length ? `<div class="label sec">Milli takım</div>${nat.map((t, i) => row(t, clubs.length + i)).join('')}` : '') +
+        (youth.length ? `<div class="label sec">Altyapı</div><div class="minis">${youth.map(mini).join('')}</div>` : '');
     paintLogos(body);
-    ensureLogos(teams.map(t => t.id));
+    ensureLogos(teams.map(t => t.logo).filter(Boolean));
   } catch (e) {
     body.querySelector('.clubs').innerHTML = `<div class="empty-msg">Bağlantı sorunu: ${esc(e.message)}</div>`;
   }
