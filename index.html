@@ -24,7 +24,7 @@
     --crest-bg:#e9e3d2; --glow:rgba(255,178,26,.65); --soft:rgba(255,178,26,.08);
     --display:"VT323",ui-monospace,monospace; --body:"IBM Plex Mono",ui-monospace,monospace;
     --safe-b:env(safe-area-inset-bottom,0px); --safe-t:env(safe-area-inset-top,0px);
-    --pad-b:max(12px, var(--safe-b)); --pad-t:max(12px, var(--safe-t));
+    --pad-b:max(10px, calc(var(--safe-b) * .6)); --pad-t:max(12px, var(--safe-t));
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{height:100%;background:var(--bg);overscroll-behavior:none}
@@ -34,7 +34,7 @@
   button{touch-action:manipulation}
   button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0}
   input{font:inherit}
-  .app{position:fixed;top:0;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;overflow:hidden;
+  .app{position:fixed;top:0;bottom:0;left:0;right:0;height:var(--app-h, auto);max-width:480px;margin:0 auto;overflow:hidden;
     background:repeating-linear-gradient(0deg,rgba(255,255,255,.025) 0 1px,transparent 1px 3px),
                radial-gradient(100% 60% at 50% 40%,#1d1a12,var(--bg) 70%)}
 
@@ -627,7 +627,7 @@ const PLAYER_LABELS = `OPTIONAL { ?p rdfs:label ?tr  FILTER(LANG(?tr)  = "tr")  
       OPTIONAL { ?p rdfs:label ?mul FILTER(LANG(?mul) = "mul") }
       OPTIONAL { ?p rdfs:label ?en  FILTER(LANG(?en)  = "en")  }`;
 async function fetchPair(a, b){
-  const key = `pair_v5:${LANG}:` + pairKey(a, b);
+  const key = `pair_v6:${LANG}:` + pairKey(a, b);
   const cached = LS.get(key);
   if (cached && Date.now() - cached.t < 6 * 3600e3) return cached.d;
 
@@ -668,22 +668,58 @@ async function fetchPair(a, b){
   return d;
 }
 
-// "Şu an" doğrulaması: oyuncunun Wikipedia sayfasındaki güncel kulübü (önce İngilizce, yoksa Türkçe).
-// Sonuçları bekletmez, arka planda çalışır.
+/* ---------- Veri kaynağı seçimi (uygulamanın dilinden BAĞIMSIZ) ----------
+   - Kulüp listesi: Türkçe ve İngilizce Wikipedia'dan kariyeri daha eksiksiz olan
+     (eşitse daha yeni güncellenen) bilgi kutusu.
+   - "Şu an": bu bilgiyi içeren sayfalardan EN SON güncellenen sayfaya güvenilir. */
+async function wikiPage(wiki, title){
+  const d = await getJSON(`https://${wiki}.wikipedia.org/w/api.php?` + new URLSearchParams({ action:'query', format:'json', origin:'*',
+    prop:'revisions', rvprop:'content|timestamp', rvslots:'main', rvsection:'0', redirects:'1', titles:title }), null, 8000);
+  const rev = Object.values(d.query?.pages || {})[0]?.revisions?.[0];
+  const text = rev?.slots?.main?.['*'] ?? rev?.slots?.main?.content ?? '';
+  return { wiki, P: infoboxParams(text), ts: rev?.timestamp || '' };
+}
+async function playerPages(sl){
+  const jobs = [];
+  if (sl.enwiki) jobs.push(wikiPage('en', sl.enwiki.title).catch(() => null));
+  if (sl.trwiki) jobs.push(wikiPage('tr', sl.trwiki.title).catch(() => null));
+  return (await Promise.all(jobs)).filter(Boolean);
+}
+const CUR_KEYS = ['current_club', 'currentclub', 'bulunduğukulüp', 'şimdikikulüp'];
+function newestCurrent(pages){
+  const withKey = pages.filter(pg => CUR_KEYS.some(k => k in pg.P)).sort((x, y) => y.ts.localeCompare(x.ts));
+  if (!withKey.length) return null;
+  const l = currentClubOf(withKey[0].P);
+  return l ? { ...l, wiki: withKey[0].wiki } : null;
+}
+// Takım adları her zaman Wikidata'dan, uygulamanın dilinde
+async function labelsOf(ids){
+  const out = {};
+  for (let i = 0; i < ids.length; i += 50) {
+    const d = await getJSON(`${API}?` + new URLSearchParams({ action:'wbgetentities', format:'json', origin:'*', props:'labels',
+      languages:'tr|en|mul', ids: ids.slice(i, i + 50).join('|') }), null, 8000);
+    Object.values(d.entities || {}).forEach(e => {
+      const L = e.labels || {}, pick = LANG === 'en' ? (L.en || L.mul || L.tr) : (L.tr || L.mul || L.en);
+      if (pick) out[e.id] = pick.value;
+    });
+  }
+  return out;
+}
+// "Turkey national football team" -> "Turkey", "Türkiye millî futbol takımı" -> "Türkiye"
+const natName = n => n.replace(/\s*mill[iî]\s+futbol\s+takımı/i, '')
+  .replace(/\s+national\s+under-(\d+)\s+(association\s+)?football\s+team/i, ' U-$1')
+  .replace(/\s+national\s+(association\s+)?football\s+team/i, '').replace(/\s+men['’]s(?=\s|$)/i, '').trim();
+
+// "Şu an" doğrulaması (iki takım eşleşmesi). Sonuçları bekletmez, arka planda çalışır.
 async function verifyPair(a, b, d){
-  const key = `pair_v5:${LANG}:` + pairKey(a, b);
+  const key = `pair_v6:${LANG}:` + pairKey(a, b);
   if (LS.get(key)?.verified) return false;
   const cand = d.filter(p => Object.values(p.s).some(l => !l.length || l.some(sp => (sp[0] && !sp[1]) || (sp[1] && sp[1] >= NOW - 1))))
-    .sort((x, y) => y.links - x.links).slice(0, 40);
+    .sort((x, y) => y.links - x.links).slice(0, 30);
   d.forEach(p => p.now = null);
   if (cand.length) {
     const sl = await sitelinksOf(cand.map(p => p.id));
-    const links = await pool(cand, 6, async p => {
-      const s = sl[p.id] || {}, wiki = s.enwiki ? 'en' : s.trwiki ? 'tr' : null;
-      if (!wiki) return null;
-      const l = currentClubOf(infoboxParams(await wikiText(wiki, s[wiki + 'wiki'].title)));
-      return l ? { ...l, wiki } : null;
-    });
+    const links = await pool(cand, 6, async p => newestCurrent(await playerPages(sl[p.id] || {})));
     const want = { tr: new Set(), en: new Set() };
     links.forEach(l => l && want[l.wiki].add(l.title));
     const q = { tr: {}, en: {} };
@@ -694,9 +730,9 @@ async function verifyPair(a, b, d){
   return true;
 }
 
-// Bir oyuncunun kariyeri: Wikidata + Türkçe/İngilizce Wikipedia bilgi kutusu
+// Bir oyuncunun kariyeri: Wikidata + en iyi Wikipedia bilgi kutusu
 async function fetchCareer(id){
-  const key = `career_v4:${LANG}:` + id;
+  const key = `career_v5:${LANG}:` + id;
   const cached = LS.get(key);
   if (cached && Date.now() - cached.t < 6 * 3600e3) return cached.d;
 
@@ -718,33 +754,29 @@ async function fetchCareer(id){
     const nat = r.nat?.value === 'true' || /\bnational\b/i.test(r.en?.value || '') || /mill[iî]/i.test(r.tr?.value || '');
     const youth = isYouthName(r.en?.value) || isYouthName(r.tr?.value) || isYouthName(label(r));
     let name = shortName(label(r) || tid);
-    if (nat) name = name.replace(/\s*mill[iî]\s+futbol\s+takımı/i, '').replace(/\s+national\s+under-(\d+)\s+(association\s+)?football\s+team/i, ' U-$1')
-      .replace(/\s+national\s+(association\s+)?football\s+team/i, '').replace(/\s+men['’]s(?=\s|$)/i, '');
+    if (nat) name = natName(name);
     if (!wd.has(tid)) wd.set(tid, { id: tid, logo: tid, name, kind: youth ? 'youth' : nat ? 'nat' : 'club', s: [] });
     const sp = [yr(r.start?.value), yr(r.end?.value)], t = wd.get(tid);
     if (!t.s.some(x => x[0] === sp[0] && x[1] === sp[1])) t.s.push(sp);
   }
 
-  // 2) Wikipedia bilgi kutuları (Türk oyuncularda Türkçe sayfa genelde çok daha eksiksiz)
-  const [trW, enW] = await Promise.all([
-    sl.trwiki ? wikiText('tr', sl.trwiki.title).catch(() => '') : '',
-    sl.enwiki ? wikiText('en', sl.enwiki.title).catch(() => '') : '',
-  ]);
-  const trP = infoboxParams(trW), enP = infoboxParams(enW);
-  // Önce seçilen dildeki Wikipedia, kulüp bilgisi yoksa diğeri
-  const order = LANG === 'en' ? [[enP, 'en'], [trP, 'tr']] : [[trP, 'tr'], [enP, 'en']];
-  let ib = infoboxCareer(...order[0]);
-  if (!ib.some(e => e.kind === 'club')) ib = infoboxCareer(...order[1]);
-  const enCur = currentClubOf(enP), trCur = currentClubOf(trP);
-  const curL = sl.enwiki ? (enCur && { ...enCur, wiki: 'en' }) : (trCur && { ...trCur, wiki: 'tr' });
+  // 2) Wikipedia: en eksiksiz bilgi kutusu ve en güncel "şu anki kulüp"
+  const pages = await playerPages(sl);
+  const clubCount = ib => ib.filter(e => e.kind === 'club').length;
+  const best = pages.map(pg => ({ pg, ib: infoboxCareer(pg.P, pg.wiki) }))
+    .sort((x, y) => (clubCount(y.ib) - clubCount(x.ib)) || y.pg.ts.localeCompare(x.pg.ts))[0];
+  const ib = best?.ib || [];
+  const curL = newestCurrent(pages);
 
   const want = { tr: new Set(), en: new Set() };
   ib.forEach(e => want[e.wiki].add(e.title));
   if (curL) want[curL.wiki].add(curL.title);
   const q = { tr: {}, en: {} };
   await Promise.all(['tr', 'en'].map(async w => { if (want[w].size) q[w] = await titlesToQ(w, [...want[w]]).catch(() => ({})); }));
+  const resolved = [...new Set(ib.map(e => q[e.wiki][e.title]).filter(Boolean))];
+  const lbl = resolved.length ? await labelsOf(resolved).catch(() => ({})) : {};
 
-  // 3) Birleştir
+  // 3) Birleştir (isimler hangi Wikipedia kullanılırsa kullanılsın aynı: Wikidata etiketi)
   const teams = new Map();
   const put = (k, base, sp) => {
     if (!teams.has(k)) teams.set(k, { ...base, s: [] });
@@ -755,13 +787,17 @@ async function fetchCareer(id){
   const seen = new Set();
   for (const e of ib) {
     const tq = q[e.wiki][e.title] || null;
-    if (e.kind === 'youth' && e.nat) {        // genç milli takım: logo için A milli takımın logosu
-      put('y:' + e.text, { id: 'x:' + e.text, logo: tq, name: e.text, kind: 'youth' }, e.sp);
+    if (e.kind === 'youth' && e.nat) {        // genç milli takım: "Türkiye U-21" (logo: A milli takım)
+      const age = (e.text.match(/(\d{2})/) || [])[1];
+      const name = tq && lbl[tq] && age ? `${natName(lbl[tq])} U-${age}` : e.text;
+      put('y:' + name, { id: 'x:' + name, logo: tq, name, kind: 'youth' }, e.sp);
       continue;
     }
+    const name = e.kind === 'nat' ? natName(lbl[tq] || e.text)
+      : (isYouthName(e.text) || !lbl[tq]) ? e.text : shortName(lbl[tq]);
     const tid = tq || 'x:' + e.text;
     if (tq) seen.add(tq + ':' + e.kind);
-    put(tid + ':' + e.kind, { id: tid, logo: tq, name: e.text, kind: e.kind }, e.sp);
+    put(tid + ':' + e.kind, { id: tid, logo: tq, name, kind: e.kind }, e.sp);
   }
   for (const t of wd.values()) {
     if (seen.has(t.id + ':' + t.kind) || teams.has(t.id + ':' + t.kind)) continue;
@@ -845,6 +881,7 @@ function renderSlots(){
 }
 
 function setTeam(k, t){
+  if (t && (!t.name || t.name === 'undefined')) t = { ...t, name: names[t.id] || POPULAR.find(x => x.id === t.id)?.name || '?' };
   state[k] = t;
   if (t) {
     names[t.id] ??= t.name;
@@ -892,7 +929,7 @@ function renderSheetHome(){
       : `<div class="empty-msg">${TEXT.playerHint}</div>`;
     return;
   }
-  const rec = LS.get('recent_v1') || [];
+  const rec = (LS.get('recent_v1') || []).filter(t => t?.id && t.name && t.name !== 'undefined');   // eski bozuk kayıtları at
   rec.forEach(t => names[t.id] ??= t.name);
   $('sheetBody').innerHTML =
     (rec.length ? `<div class="label">${TEXT.recentTeams}</div><div class="recent">${
@@ -942,7 +979,7 @@ $('sheetBody').addEventListener('click', e => {
     if (p) { $('q').blur(); swapTop($('career')); showCareer(p, true); }
     return;
   }
-  const b = e.target.closest('[data-id]'); if (!b) return;
+  const b = e.target.closest('button[data-id]'); if (!b) return;   // armaya dokunulsa da butonu al
   setTeam(state.slot, { id: b.dataset.id, name: b.dataset.name });
   const other = state.slot === 'a' ? 'b' : 'a';
   if (!state[other]) { state.slot = other; setSheetHeader(); $('q').value = ''; renderSheetHome(); $('q').focus(); }
@@ -1095,6 +1132,16 @@ async function showCareer(p, remember){
 }
 
 /* ---------- Başlangıç ---------- */
+// iPhone ana ekran uygulamasında Safari yüksekliği eksik bildirebiliyor: gerçek ekran yüksekliğini kullan
+function fitHeight(){
+  if (navigator.standalone !== true) return;
+  const portrait = matchMedia('(orientation: portrait)').matches;
+  const full = portrait ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height);
+  document.documentElement.style.setProperty('--app-h', Math.max(full, innerHeight) + 'px');
+}
+fitHeight();
+addEventListener('resize', fitHeight);
+addEventListener('orientationchange', () => setTimeout(fitHeight, 300));
 $('random').textContent = TEXT.random;
 $('careerBtn').textContent = TEXT.career;
 $('onlyNow').innerHTML = `<i></i>${TEXT.current}`;
