@@ -1,6 +1,6 @@
 # 3-2-1! Ortak Oyuncu ⚽
 
-Kafede oynanan **3-2-1** oyunu için mobil web uygulaması.
+**3-2-1** oyunu için mobil web uygulaması.
 
 **Oyun:** "3, 2, 1!" diye sayılır, iki kişi birer futbol takımı söyler (ör. *AC Milan* ve *Real Madrid*). İki takımda da oynamış bir oyuncuyu ilk söyleyen kazanır.
 
