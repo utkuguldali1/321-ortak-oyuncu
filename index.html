@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0b0b0a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="3-2-1!">
 <meta name="description" content="İki futbol takımı seç, iki takımda da oynamış oyuncuları anında gör. Kafede oynanan 3-2-1 oyunu için.">
 <link rel="manifest" href="manifest.webmanifest">
@@ -24,7 +24,7 @@
     --crest-bg:#e9e3d2; --glow:rgba(255,178,26,.65); --soft:rgba(255,178,26,.08);
     --display:"VT323",ui-monospace,monospace; --body:"IBM Plex Mono",ui-monospace,monospace;
     --safe-b:env(safe-area-inset-bottom,0px); --safe-t:env(safe-area-inset-top,0px);
-    --pad-b:max(10px, calc(var(--safe-b) * .6)); --pad-t:max(12px, var(--safe-t));
+    --pad-b:max(12px, calc(var(--safe-b) - 8px)); --pad-t:max(12px, var(--safe-t));
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{height:100%;background:var(--bg);overscroll-behavior:none}
@@ -34,7 +34,7 @@
   button{touch-action:manipulation}
   button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0}
   input{font:inherit}
-  .app{position:fixed;top:0;bottom:0;left:0;right:0;height:var(--app-h, auto);max-width:480px;margin:0 auto;overflow:hidden;
+  .app{position:fixed;top:0;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;overflow:hidden;
     background:repeating-linear-gradient(0deg,rgba(255,255,255,.025) 0 1px,transparent 1px 3px),
                radial-gradient(100% 60% at 50% 40%,#1d1a12,var(--bg) 70%)}
 
@@ -1132,16 +1132,22 @@ async function showCareer(p, remember){
 }
 
 /* ---------- Başlangıç ---------- */
-// iPhone ana ekran uygulamasında Safari yüksekliği eksik bildirebiliyor: gerçek ekran yüksekliğini kullan
-function fitHeight(){
-  if (navigator.standalone !== true) return;
+// iPhone ana ekran uygulaması: yüksekliğe ASLA dokunma (screen.height butonları ekran dışına itiyordu).
+// Eski simgelerde (black-translucent) Safari alanı altta kısa bırakabiliyor; o zaman ev çubuğu zaten
+// alanın dışında kaldığı için ayrıca alt dolgu ekleme.
+function fitBottom(){
+  const probe = document.createElement('div');
+  probe.style.cssText = 'position:fixed;visibility:hidden;padding-top:env(safe-area-inset-top,0px)';
+  document.body.appendChild(probe);
+  const safeTop = parseFloat(getComputedStyle(probe).paddingTop) || 0;
+  probe.remove();
   const portrait = matchMedia('(orientation: portrait)').matches;
-  const full = portrait ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height);
-  document.documentElement.style.setProperty('--app-h', Math.max(full, innerHeight) + 'px');
+  const short = navigator.standalone === true && portrait && safeTop > 0 && screen.height - innerHeight > 20;
+  if (short) document.documentElement.style.setProperty('--pad-b', '12px');
+  else document.documentElement.style.removeProperty('--pad-b');
 }
-fitHeight();
-addEventListener('resize', fitHeight);
-addEventListener('orientationchange', () => setTimeout(fitHeight, 300));
+fitBottom();
+addEventListener('resize', fitBottom);
 $('random').textContent = TEXT.random;
 $('careerBtn').textContent = TEXT.career;
 $('onlyNow').innerHTML = `<i></i>${TEXT.current}`;
