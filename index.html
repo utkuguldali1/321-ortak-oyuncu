@@ -28,19 +28,19 @@
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{height:100%;background:var(--bg);overscroll-behavior:none}
-  body{margin:0;color:var(--text);overflow:hidden;font:15px/1.4 var(--body);-webkit-text-size-adjust:100%;
+  body{margin:0;color:var(--text);overflow:hidden;font:15px/1.4 var(--body);-webkit-text-size-adjust:100%;text-size-adjust:100%;
     -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
   input{-webkit-user-select:text;user-select:text}
   button{touch-action:manipulation}
   button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0}
   input{font:inherit}
-  .app{position:fixed;top:0;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;overflow:hidden;
+  .app{position:fixed;top:0;bottom:0;left:env(safe-area-inset-left,0px);right:env(safe-area-inset-right,0px);max-width:480px;margin:0 auto;overflow:hidden;
     background:repeating-linear-gradient(0deg,rgba(255,255,255,.025) 0 1px,transparent 1px 3px),
                radial-gradient(100% 60% at 50% 40%,#1d1a12,var(--bg) 70%)}
 
   /* ---------- Ana ekran ---------- */
   .home{height:100%;display:flex;flex-direction:column;padding:calc(var(--pad-t) + 4px) 18px var(--pad-b)}
-  .logo{font:clamp(40px, 6.5dvh, 56px)/1 var(--display);color:var(--amber);text-shadow:0 0 14px var(--glow);white-space:nowrap}
+  .logo{font:clamp(40px, 6.5vh, 56px)/1 var(--display);font-size:clamp(40px, 6.5dvh, 56px);color:var(--amber);text-shadow:0 0 14px var(--glow);white-space:nowrap}
   .top{display:flex;align-items:center;justify-content:space-between}
   .lang{height:34px;min-width:46px;padding:0 10px;border:1px solid var(--line);border-radius:4px;background:var(--soft);
     font:24px/1 var(--display);color:var(--amber);letter-spacing:.06em}
@@ -51,9 +51,9 @@
   .match::after{content:"";position:absolute;left:-18px;right:-18px;top:50%;height:2px;margin-top:-1px;background:rgba(255,178,26,.08);pointer-events:none}
   .slot,.vs{position:relative;z-index:1}
   .slot{display:flex;flex-direction:column;align-items:center;gap:12px;min-width:0}
-  .slot .crest{width:min(31vw,17dvh,140px);height:min(31vw,17dvh,140px);box-shadow:0 0 0 3px var(--line)}
+  .slot .crest{width:min(31vw,17vh,140px);height:min(31vw,17vh,140px);width:min(31vw,17dvh,140px);height:min(31vw,17dvh,140px);box-shadow:0 0 0 3px var(--line)}
   .slot.empty .crest{background:transparent;border:2px dashed var(--amber);box-shadow:none;color:var(--amber);font-size:48px}
-  .slot .nm{font:27px/1 var(--display);text-align:center;max-width:100%;
+  .slot .nm{font:clamp(17px,6.4vw,27px)/1 var(--display);overflow-wrap:anywhere;text-align:center;max-width:100%;
     overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
   .slot.empty .nm{color:var(--muted)}
   .slot:active .crest{transform:scale(.96)}
@@ -62,7 +62,7 @@
   .hint b{color:var(--text)}
   .cta{display:flex;flex-direction:column;gap:10px}
   .cta .duo{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  .go{height:clamp(56px, 8.5dvh, 72px);border-radius:4px;background:var(--amber);color:var(--ink);font:42px/1 var(--display);letter-spacing:.06em;
+  .go{height:clamp(56px, 8.5vh, 72px);height:clamp(56px, 8.5dvh, 72px);border-radius:4px;background:var(--amber);color:var(--ink);font:42px/1 var(--display);letter-spacing:.06em;
     box-shadow:0 0 0 3px var(--bg),0 0 0 5px rgba(255,178,26,.5),0 0 30px rgba(255,178,26,.35);transition:transform .12s,opacity .2s}
   .go:active{transform:scale(.98)}
   .go:disabled{opacity:.25;box-shadow:none}
@@ -96,7 +96,7 @@
   .spin{width:16px;height:16px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--amber);animation:spin .7s linear infinite;display:none}
   .searching .spin{display:block}
   @keyframes spin{to{transform:rotate(360deg)}}
-  .scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .scroll{flex:1;min-height:0;overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch}
 
   /* ---------- Takım / oyuncu seçme ---------- */
   .sheet-top{padding:calc(var(--pad-t) + 4px) 14px 12px;display:flex;flex-direction:column;gap:12px;border-bottom:1px solid var(--line)}
@@ -107,8 +107,8 @@
   .recent::-webkit-scrollbar{display:none}
   .chip{display:flex;align-items:center;gap:8px;padding:5px 12px 5px 5px;border-radius:4px;background:var(--card);border:1px solid var(--line);white-space:nowrap;font-weight:600;font-size:13px}
   .chip .crest{width:28px;height:28px;font-size:11px}
-  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px 8px}
-  .tile{display:flex;flex-direction:column;align-items:center;gap:7px;font-size:11.5px;font-weight:600;text-align:center;line-height:1.15}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:14px 6px}
+  .tile{display:flex;flex-direction:column;align-items:center;gap:7px;font-size:clamp(10.5px,3vw,11.5px);font-weight:600;text-align:center;line-height:1.15}
   .tile .crest{width:58px;height:58px}
   .tile:active .crest,.chip:active,.row:active{transform:scale(.95)}
   .rows{display:flex;flex-direction:column;gap:6px}
@@ -121,7 +121,7 @@
   /* ---------- Geri sayım ---------- */
   .count{position:absolute;inset:0;z-index:20;display:none;align-items:center;justify-content:center;flex-direction:column;gap:8px;background:rgba(8,8,6,.96)}
   .count.on{display:flex}
-  .num{font:min(64vw,300px)/1 var(--display);color:var(--amber);text-shadow:0 0 40px var(--glow),0 0 4px var(--amber)}
+  .num{font:min(64vw,66vh,300px)/1 var(--display);color:var(--amber);text-shadow:0 0 40px var(--glow),0 0 4px var(--amber)}
   .num.pop{animation:pop .75s cubic-bezier(.2,.9,.3,1.3)}
   @keyframes pop{0%{transform:scale(.3);opacity:0}35%{transform:scale(1.08);opacity:1}100%{transform:scale(1);opacity:1}}
   .count small{color:var(--muted)}
@@ -169,11 +169,12 @@
   /* ---------- Kariyer ---------- */
   .hero{display:flex;align-items:center;gap:16px;padding:20px 18px 14px}
   .hero .face{width:88px;height:88px;font-size:40px}
-  .hero h2{margin:0;font:36px/1 var(--display);color:var(--amber);text-shadow:0 0 12px var(--glow)}
+  .hero>div:last-child{min-width:0}
+  .hero h2{margin:0;font:clamp(24px,8.6vw,36px)/1 var(--display);overflow-wrap:anywhere;color:var(--amber);text-shadow:0 0 12px var(--glow)}
   .hero p{margin:6px 0 0;color:var(--muted);font-size:12.5px}
   .clubs{padding:4px 14px calc(var(--pad-b) + 16px);display:flex;flex-direction:column;gap:6px}
   .club{display:flex;align-items:center;gap:14px;padding:9px 12px;border-radius:4px;background:var(--card);border:1px solid var(--line);animation:rise .3s both}
-  .club b{display:block;font:27px/1 var(--display)}
+  .club b{display:block;font:clamp(21px,6.6vw,27px)/1 var(--display);overflow-wrap:anywhere}
   .club small{display:block;margin-top:3px;color:var(--faint);font-size:11.5px}
   .club.cur{border-color:rgba(255,178,26,.6)}
   .club>div{min-width:0}
@@ -184,7 +185,57 @@
   .mini span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .mini small{margin-left:auto;color:var(--faint);font-size:11px;white-space:nowrap}
 
-  @media (min-width:520px){ .app{border-left:1px solid var(--line);border-right:1px solid var(--line)} }
+  /* ---------- Cihaz uyumu ---------- */
+  /* Dar telefonlar: sonuç başlığında arma üstte, isim altta (isimler kesilmesin) */
+  @media (max-width:430px){
+    .res-match{align-items:flex-start}
+    .res-match .t{flex:1;flex-direction:column;gap:5px;font-size:clamp(16px,5.2vw,22px)}
+    .res-match .t:last-child{flex-direction:column-reverse}
+    .res-match .t span:not(.crest){white-space:normal;text-align:center;max-width:100%;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere}
+    .res-match .v{margin-top:8px}
+  }
+  @media (max-width:340px){
+    .cta .ghost{font-size:12px}
+    .cta .duo{grid-template-columns:auto 1fr;gap:8px}
+    .cta #random{padding:0 10px}
+    .res-count{font-size:23px}
+    .pl{grid-template-columns:20px 46px 1fr;gap:9px;padding:9px}
+    .pl .face{width:46px;height:46px}
+  }
+  /* Kısa ekran (tarayıcı çubukları açıkken) */
+  @media (max-height:600px){
+    .hint{margin-bottom:8px}
+    .ghost{height:46px}
+  }
+  /* Yatay telefon: solda takımlar, sağda butonlar */
+  @media (orientation:landscape) and (max-height:500px){
+    .app{max-width:900px}
+    .home{display:grid;grid-template-columns:1.25fr 1fr;grid-template-rows:auto 1fr auto;column-gap:22px}
+    .home .top{grid-column:1 / -1}
+    .home .match{grid-column:1;grid-row:2 / 4}
+    .home .hint{grid-column:2;grid-row:2;align-self:end}
+    .home .cta{grid-column:2;grid-row:3;align-self:end}
+    .logo{font-size:36px}
+    .slot{gap:8px}
+    .slot .crest{width:min(33vh,17vw,130px);height:min(33vh,17vw,130px)}
+    .slot .nm{font-size:22px}
+    .match::before{width:150px;height:150px;margin:-75px 0 0 -75px}
+    .go{height:54px}
+    .ghost{height:44px}
+    .bar,.sheet-top{padding-top:calc(var(--pad-t) - 4px);padding-bottom:8px}
+    .sheet-top{flex-direction:row;align-items:center}
+    .sheet-top .search{flex:1;height:42px}
+    .grid{grid-template-columns:repeat(auto-fill,minmax(82px,1fr))}
+    .tools{flex-direction:row;align-items:center;padding:8px 14px 4px}
+    .tools-row{flex:none}
+    .tools .search{flex:1;min-width:0;height:38px}
+    .res-count{font-size:23px;white-space:nowrap}
+    .res-cta{left:auto;width:min(320px,50%);padding-top:8px;background:none}
+    .res-cta .go,.res-cta .ghost{height:46px}
+    .res-cta .ghost{background:var(--card)}
+    .res-list{padding-bottom:calc(var(--pad-b) + 62px)}
+  }
+  @media (min-width:520px) and (min-height:501px){ .app{border-left:1px solid var(--line);border-right:1px solid var(--line)} }
   @media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important} }
 </style>
 </head>
@@ -904,6 +955,9 @@ const back = () => history.back();
 document.querySelectorAll('[data-back]').forEach(b => b.addEventListener('click', back));
 
 /* ---------- Seçme paneli (takım veya oyuncu) ---------- */
+const HOVER = matchMedia('(hover: hover) and (pointer: fine)').matches;   // fareli cihaz
+$('sheetBody').addEventListener('touchmove', () => $('q').blur(), { passive: true });   // kaydırınca klavye kapansın
+$('resList').addEventListener('touchmove', () => $('filter').blur(), { passive: true });
 let searchTimer, searchCtrl;
 const lastPlayers = {};
 function openSheet(mode, slot){
@@ -912,7 +966,7 @@ function openSheet(mode, slot){
   $('q').value = '';
   renderSheetHome();
   openLayer($('sheet'));
-  setTimeout(() => $('q').focus(), 50);
+  if (mode === 'player' || HOVER) setTimeout(() => $('q').focus(), 50);   // dokunmatikte klavye popüler takımları kapatmasın
 }
 function setSheetHeader(){
   const team = state.mode === 'team';
@@ -982,7 +1036,7 @@ $('sheetBody').addEventListener('click', e => {
   const b = e.target.closest('button[data-id]'); if (!b) return;   // armaya dokunulsa da butonu al
   setTeam(state.slot, { id: b.dataset.id, name: b.dataset.name });
   const other = state.slot === 'a' ? 'b' : 'a';
-  if (!state[other]) { state.slot = other; setSheetHeader(); $('q').value = ''; renderSheetHome(); $('q').focus(); }
+  if (!state[other]) { state.slot = other; setSheetHeader(); $('q').value = ''; renderSheetHome(); $('sheetBody').scrollTop = 0; if (HOVER) $('q').focus(); else $('q').blur(); }
   else back();
 });
 
